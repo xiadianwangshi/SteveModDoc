@@ -72,6 +72,9 @@
     display:block;padding:12px 20px;font-size:15px;color:#24313d;
     text-decoration:none;border-left:3px solid transparent;cursor:pointer;
   }
+  .toc-item.sub{
+    padding-left:34px;font-size:14px;color:#495764;
+  }
   .toc-item:active{background:#f4f6f8;}
   .toc-item.active{color:#0b6e4f;font-weight:700;border-left-color:#0b6e4f;background:#f0f9f4;}
 
@@ -199,7 +202,7 @@
   </button>
 </div>
 
-<!-- 目录浮层 -->
+<!-- 目录浮层（增加h3子项，class="sub"缩进） -->
 <div class="mask" id="mask"></div>
 <div class="toc-panel" id="tocPanel">
   <div class="toc-head">
@@ -209,14 +212,33 @@
   <div class="toc-list" id="tocList">
     <a class="toc-item" data-target="s1">1. 设计概述</a>
     <a class="toc-item" data-target="s2">2. 核心机制</a>
+    <a class="toc-item sub" data-target="s2-1"> 2.1 箭袋牌堆</a>
+    <a class="toc-item sub" data-target="s2-2"> 2.2 弓：发射</a>
+    <a class="toc-item sub" data-target="s2-3"> 2.3 弩：装填 → 发射</a>
+    <a class="toc-item sub" data-target="s2-4"> 2.4 伤害公式</a>
+    <a class="toc-item sub" data-target="s2-5"> 2.5 空袋规则</a>
+    <a class="toc-item sub" data-target="s2-6"> 2.6 消耗堆与回收</a>
+    <a class="toc-item sub" data-target="s2-7"> 2.7 迟缓：延后敌人意图</a>
+    <a class="toc-item sub" data-target="s2-8"> 2.8 再生：MC 数值体系</a>
     <a class="toc-item" data-target="s3">3. 箭种表</a>
     <a class="toc-item" data-target="s4">4. 附魔表</a>
+    <a class="toc-item sub" data-target="s4-1"> 4.1 弓附魔</a>
+    <a class="toc-item sub" data-target="s4-2"> 4.2 弩附魔</a>
     <a class="toc-item" data-target="s5">5. 初始遗物</a>
     <a class="toc-item" data-target="s6">6. 弓专属卡牌</a>
     <a class="toc-item" data-target="s7">7. 弩专属卡牌与派生牌</a>
+    <a class="toc-item sub" data-target="s7-1"> 7.1 派生牌命名</a>
+    <a class="toc-item sub" data-target="s7-2"> 7.2 派生牌效果</a>
     <a class="toc-item" data-target="s8">8. 通用卡牌</a>
     <a class="toc-item" data-target="s9">9. 配套遗物</a>
     <a class="toc-item" data-target="s10">10. 平衡与实现要点</a>
+    <a class="toc-item sub" data-target="s10-1"> 10.1 空袋禁射的压力</a>
+    <a class="toc-item sub" data-target="s10-2"> 10.2 累乘锚点</a>
+    <a class="toc-item sub" data-target="s10-3"> 10.3 迟缓的 Boss 价值</a>
+    <a class="toc-item sub" data-target="s10-4"> 10.4 再生全局统一</a>
+    <a class="toc-item sub" data-target="s10-5"> 10.5 穿透相邻判定</a>
+    <a class="toc-item sub" data-target="s10-6"> 10.6 首射之弓边界</a>
+    <a class="toc-item sub" data-target="s10-7"> 10.7 实现要点</a>
     <a class="toc-item" data-target="s11">11. 卡池总览</a>
   </div>
 </div>
@@ -246,7 +268,7 @@
 
   <h2 id="s2">2. 核心机制</h2>
 
-  <h3>2.1 箭袋牌堆</h3>
+  <h3 id="s2-1">2.1 箭袋牌堆</h3>
   <ul>
     <li>独立第三牌堆，<strong>无数量上限</strong>。</li>
     <li><strong>跨战斗完整继承</strong>：未取用的箭带入下一场、下一层、下一章，存于 RunState。</li>
@@ -254,13 +276,13 @@
     <li>HUD 常驻显示总数、<code>NEXT ▸ 下一发箭种</code>、各箭种数量徽章。</li>
   </ul>
 
-  <h3>2.2 弓：发射</h3>
+  <h3 id="s2-2">2.2 弓：发射</h3>
   <ul>
     <li>打出弓牌 → 袋顶取箭 → <strong>立即结算</strong> → 箭进消耗堆。</li>
     <li>无派生牌、无「装填」关键词。空袋不可打出。</li>
   </ul>
 
-  <h3>2.3 弩：装填 → 发射</h3>
+  <h3 id="s2-3">2.3 弩：装填 → 发射</h3>
   <ul>
     <li>打出弩牌 → 袋顶取箭 → <strong>不结算伤害</strong> → 生成 <strong>0 费、保留</strong>派生牌 → 原弩进弃牌堆。</li>
     <li>派生牌卡名 = <strong>装填 + 箭种名 + 的 + 弩名</strong>。</li>
@@ -269,7 +291,7 @@
     <li>箭数不足时弩不可打出。战斗结束未打出的派生牌销毁，其箭进消耗堆。</li>
   </ul>
 
-  <h3>2.4 伤害公式</h3>
+  <h3 id="s2-4">2.4 伤害公式</h3>
   <pre><code>单支箭伤害 = 箭种基础 + 卡牌修正 + 满弦 + 力量附魔 + 力量遗物
 最终伤害 = 单支箭伤害 × 1.5(易伤) × 1.25^发光层数 × 其他</code></pre>
   <ul>
@@ -278,7 +300,7 @@
     <li>发光每层 ×1.25，<strong>累乘</strong>（2 层 ×1.5625，3 层 ×1.953125）。</li>
   </ul>
 
-  <h3>2.5 空袋规则</h3>
+  <h3 id="s2-5">2.5 空袋规则</h3>
   <table class="tbl">
     <tr><th>牌型</th><th>袋空时</th></tr>
     <tr><td>弓牌</td><td>不可打出</td></tr>
@@ -287,10 +309,10 @@
     <tr><td>发射 N 支</td><td>需 ≥ N 支</td></tr>
   </table>
 
-  <h3>2.6 消耗堆与回收</h3>
+  <h3 id="s2-6">2.6 消耗堆与回收</h3>
   <p>箭用后进消耗堆（战斗内，不跨战斗），在消耗堆查看器中以“已消耗弹药”分区按箭种计数。回收牌可从消耗堆取回箭。</p>
 
-  <h3>2.7 迟缓：延后敌人意图</h3>
+  <h3 id="s2-7">2.7 迟缓：延后敌人意图</h3>
   <p><strong>迟缓 X</strong>：目标接下来 X 次行动跳过，意图<strong>保留并顺延</strong>。</p>
   <ul>
     <li>1 层 = 少打一次，意图顺延一回合。</li>
@@ -298,7 +320,7 @@
     <li>UI 在敌人头顶显示“迟缓 X”与顺延后的意图。</li>
   </ul>
 
-  <h3>2.8 再生：MC 数值体系</h3>
+  <h3 id="s2-8">2.8 再生：MC 数值体系</h3>
   <p><strong>再生 X（N 回合）</strong>：每回合结束回 X 点，持续 N 回合，<strong>不递减</strong>。总恢复 = X×N。适用于 Stevemod 全流派，与原版再生分开结算。</p>
 
   <h2 id="s3">3. 箭种表</h2>
@@ -316,7 +338,7 @@
 
   <h2 id="s4">4. 附魔表</h2>
   <p>每张弓/弩 1 个附魔槽（Boss 遗物「附魔台」扩为 2 个）。获得途径：附魔台碎片、附魔之瓶、附魔台。</p>
-  <h3>弓附魔</h3>
+  <h3 id="s4-1">4.1 弓附魔</h3>
   <table class="tbl">
     <tr><th>附魔</th><th>效果</th></tr>
     <tr><td>力量</td><td>箭伤害 +3</td></tr>
@@ -324,7 +346,7 @@
     <tr><td>火矢</td><td>额外 2 层灼烧</td></tr>
     <tr><td>无限</td><td>50% 不消耗箭</td></tr>
   </table>
-  <h3>弩附魔</h3>
+  <h3 id="s4-2">4.2 弩附魔</h3>
   <table class="tbl">
     <tr><th>附魔</th><th>效果</th></tr>
     <tr><td>多重射击</td><td>装填数 +1</td></tr>
@@ -403,7 +425,7 @@
     <div class="card-body">手牌中所有“装填…的弩”费用变为 0（本场战斗）。抽 1 张牌。</div>
   </div>
 
-  <h3>派生牌命名</h3>
+  <h3 id="s7-1">7.1 派生牌命名</h3>
   <p class="note">装填 + 箭种名 + 的 + 弩名。例：</p>
   <table class="tbl">
     <tr><th>装填</th><th>派生牌</th></tr>
@@ -414,7 +436,7 @@
     <tr><td>2 支异种</td><td>装填[箭1]与[箭2]的连发弩</td></tr>
   </table>
 
-  <h3>派生牌效果</h3>
+  <h3 id="s7-2">7.2 派生牌效果</h3>
   <table class="tbl">
     <tr><th>派生牌</th><th>费用</th><th>效果</th></tr>
     <tr><td>装填[箭种]的弩</td><td>0</td><td>发射所装填的箭，伤害 +4；装填时箭袋 ≥ 10 改为 +10。</td></tr>
@@ -513,22 +535,22 @@
 
   <h2 id="s10">10. 平衡与实现要点</h2>
 
-  <h3>10.1 空袋禁射的压力</h3>
+  <h3 id="s10-1">10.1 空袋禁射的压力</h3>
   <p>弹药供给是硬需求。初始遗物每回合 +1 只够 1 费弓；补弹网络 = 补充箭矢、制箭、回收箭、重制箭矢、拾荒者、箭袋回收。<code>齐射</code>与<code>连发弩</code>是消耗大户，打出前确认袋深。</p>
 
-  <h3>10.2 累乘锚点</h3>
+  <h3 id="s10-2">10.2 累乘锚点</h3>
   <p>易伤 ×1.5 + 3 层发光 ×1.953125 = ×2.93。光灵箭是唯一稳定发光来源，每支 1 层、持续 2 回合。过强时优先削减发光持续时间或光灵箭供给，不改回加算。</p>
 
-  <h3>10.3 迟缓的 Boss 价值</h3>
+  <h3 id="s10-3">10.3 迟缓的 Boss 价值</h3>
   <p>1 层 = 少打一次；<code>瞄准射击</code>+迟缓之箭 = 2 层 = 跳过两次。迟缓之箭供给应比伤害之箭更稀缺。</p>
 
-  <h3>10.4 再生全局统一</h3>
+  <h3 id="s10-4">10.4 再生全局统一</h3>
   <p>固定量 × 固定回合、不递减，独立 buff ID（如 <code>SteveRegen</code>），与原版再生分开结算。</p>
 
-  <h3>10.5 穿透相邻判定</h3>
+  <h3 id="s10-5">10.5 穿透相邻判定</h3>
   <p>取目标左右各一名存活敌人，各结算等量伤害（含箭种、附魔、乘算）。相邻单位也触发箭种效果——穿透光灵箭可一次给 3 目标挂发光。</p>
 
-  <h3>10.6 首射之弓边界</h3>
+  <h3 id="s10-6">10.6 首射之弓边界</h3>
   <ul>
     <li>袋空仍不可打出。</li>
     <li><code>齐射</code>射 3 支，仅第 1 支免消耗并 +4（+3+1），其余正常取箭、只吃 +1。</li>
@@ -537,7 +559,7 @@
     <li>弩线零收益。</li>
   </ul>
 
-  <h3>10.7 实现要点</h3>
+  <h3 id="s10-7">10.7 实现要点</h3>
   <ul>
     <li>箭数据：<code>ArrowData { type, uid }</code>；箭袋存 RunState，消耗堆箭单独列表。</li>
     <li>派生牌：<code>CardRarity.Special</code>，带 <code>Retain</code> 与 <code>cost=0</code>，卡名与 DynamicVars 装填时写入。</li>
@@ -613,8 +635,8 @@
     });
   });
 
-  // 回到顶部 + 当前章节高亮
-  var headings = Array.prototype.slice.call(document.querySelectorAll('h2[id]'));
+  // 回到顶部 + 当前章节高亮（同时抓取h2、h3）
+  var headings = Array.prototype.slice.call(document.querySelectorAll('h2[id],h3[id]'));
   var tocItems = Array.prototype.slice.call(tocList.querySelectorAll('.toc-item'));
 
   function onScroll(){

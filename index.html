@@ -2,618 +2,992 @@
 <html lang="zh-CN">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width,initial-scale=1.0,maximum-scale=1.0,user-scalable=no,viewport-fit=cover">
-<meta name="format-detection" content="telephone=no">
-<title>Stevemod 弓弩流派设计文档</title>
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<title>Stevemod 弓弩流派 · 设计文档</title>
 <style>
+  :root{
+    --green:#0b6e4f; --green-l:#e8f5ef; --green-d:#085c41;
+    --bow:#2e8b57; --cross:#b3541e; --relic:#8a6d3b; --boss:#c0392b;
+    --ink:#1f2328; --ink2:#24313d; --muted:#6b7680;
+    --line:#e4e8ec; --bg:#f4f6f8; --card:#ffffff;
+    --shadow:0 1px 4px rgba(0,0,0,.07); --shadow2:0 4px 18px rgba(0,0,0,.08);
+    --nav-h:56px;
+  }
   *{margin:0;padding:0;box-sizing:border-box;-webkit-tap-highlight-color:transparent;}
-  html{scroll-behavior:auto;}
+  html{scroll-behavior:smooth;}
   body{
-    background:#f4f6f8;color:#1f2328;
+    background:var(--bg); color:var(--ink);
     font-family:-apple-system,BlinkMacSystemFont,"PingFang SC","Hiragino Sans GB","Microsoft YaHei",sans-serif;
-    font-size:16px;line-height:1.75;
-    padding-bottom:calc(60px + env(safe-area-inset-bottom));
-    -webkit-text-size-adjust:100%;
+    font-size:15.5px; line-height:1.78;
     -webkit-font-smoothing:antialiased;
+    padding-top:calc(var(--nav-h) + env(safe-area-inset-top));
   }
 
-  /* 顶部固定栏 */
-  .topbar{
-    position:fixed;top:0;left:0;right:0;z-index:100;
-    background:rgba(255,255,255,.94);
-    -webkit-backdrop-filter:saturate(180%) blur(12px);
-    backdrop-filter:saturate(180%) blur(12px);
-    border-bottom:1px solid #e4e8ec;
-    padding-top:env(safe-area-inset-top);
-    display:flex;align-items:center;justify-content:space-between;
-    height:calc(52px + env(safe-area-inset-top));
-    padding-left:16px;padding-right:12px;
+  /* ============ 顶部导航 ============ */
+  .nav{
+    position:fixed; top:0; left:0; right:0; z-index:100;
+    height:calc(var(--nav-h) + env(safe-area-inset-top));
+    padding:env(safe-area-inset-top) 16px 0;
+    display:flex; align-items:center; gap:12px;
+    background:rgba(255,255,255,.92);
+    -webkit-backdrop-filter:saturate(180%) blur(14px);
+    backdrop-filter:saturate(180%) blur(14px);
+    border-bottom:1px solid var(--line);
   }
-  .topbar-title{font-size:15px;font-weight:700;color:#0b6e4f;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
-  .toc-btn{
-    display:flex;align-items:center;gap:5px;
-    background:#e8f5ef;color:#0b6e4f;
-    font-size:13px;font-weight:700;
-    padding:6px 12px;border-radius:16px;
-    border:none;cursor:pointer;flex-shrink:0;
+  .nav-logo{
+    display:flex; align-items:center; gap:8px;
+    font-weight:800; font-size:15px; color:var(--green); white-space:nowrap;
   }
-  .toc-btn:active{background:#d3ecdf;}
-  .toc-btn svg{width:14px;height:14px;}
+  .nav-logo svg{width:20px;height:20px;}
+  .nav-actions{margin-left:auto; display:flex; gap:8px;}
+  .nav-btn{
+    display:flex; align-items:center; gap:5px;
+    background:var(--green-l); color:var(--green);
+    font-size:13px; font-weight:700;
+    padding:7px 13px; border-radius:18px; border:none; cursor:pointer;
+    transition:background .2s;
+  }
+  .nav-btn:hover{background:#d3ecdf;}
+  .nav-btn:active{transform:scale(.97);}
+  .nav-btn svg{width:14px;height:14px;}
 
-  /* 目录浮层 */
-  .mask{
-    position:fixed;inset:0;z-index:200;
-    background:rgba(0,0,0,.45);
-    opacity:0;visibility:hidden;transition:opacity .25s,visibility .25s;
-  }
-  .mask.show{opacity:1;visibility:visible;}
-  .toc-panel{
-    position:fixed;top:0;right:0;bottom:0;z-index:201;
-    width:78%;max-width:320px;
-    background:#fff;
-    transform:translateX(100%);transition:transform .28s cubic-bezier(.4,0,.2,1);
-    padding-top:env(safe-area-inset-top);
-    display:flex;flex-direction:column;
-    box-shadow:-4px 0 20px rgba(0,0,0,.12);
-  }
-  .toc-panel.show{transform:translateX(0);}
-  .toc-head{
-    display:flex;align-items:center;justify-content:space-between;
-    padding:16px 18px 12px;border-bottom:1px solid #eef2f5;
-  }
-  .toc-head-title{font-size:16px;font-weight:700;color:#0b6e4f;}
-  .toc-close{
-    width:30px;height:30px;border-radius:50%;background:#eef2f5;border:none;
-    font-size:16px;color:#6b7680;cursor:pointer;line-height:1;
-  }
-  .toc-close:active{background:#e2e8ec;}
-  .toc-list{flex:1;overflow-y:auto;padding:8px 0;padding-bottom:calc(20px + env(safe-area-inset-bottom));-webkit-overflow-scrolling:touch;}
-  .toc-item{
-    display:block;padding:12px 20px;font-size:15px;color:#24313d;
-    text-decoration:none;border-left:3px solid transparent;cursor:pointer;
-  }
-  .toc-item.sub{
-    padding-left:34px;font-size:14px;color:#495764;
-  }
-  .toc-item:active{background:#f4f6f8;}
-  .toc-item.active{color:#0b6e4f;font-weight:700;border-left-color:#0b6e4f;background:#f0f9f4;}
+  /* ============ 布局 ============ */
+  .layout{max-width:1180px; margin:0 auto; display:flex; gap:32px; padding:28px 20px 80px;}
+  .main{flex:1; min-width:0;}
 
-  /* 正文 */
-  .wrap{max-width:680px;margin:0 auto;padding:calc(70px + env(safe-area-inset-top)) 12px 20px;}
+  /* ============ 侧边目录 ============ */
+  .side{
+    width:250px; flex-shrink:0;
+    position:sticky; top:calc(var(--nav-h) + env(safe-area-inset-top) + 28px);
+    align-self:flex-start;
+    max-height:calc(100vh - var(--nav-h) - 60px);
+    overflow-y:auto;
+    padding-right:4px;
+  }
+  .side::-webkit-scrollbar{width:5px;}
+  .side::-webkit-scrollbar-thumb{background:#d1d9e0;border-radius:3px;}
+  .side-title{
+    font-size:12px; font-weight:800; letter-spacing:.08em;
+    color:var(--muted); text-transform:uppercase;
+    margin-bottom:10px; padding-left:12px;
+  }
+  .side a{
+    display:block; padding:7px 12px; font-size:14px; color:var(--ink2);
+    text-decoration:none; border-radius:7px; border-left:3px solid transparent;
+    transition:all .18s; margin-bottom:1px;
+  }
+  .side a:hover{background:#fff; color:var(--green);}
+  .side a.active{
+    background:var(--green-l); color:var(--green);
+    font-weight:700; border-left-color:var(--green);
+  }
 
-  h1{font-size:22px;line-height:1.35;color:#0b6e4f;margin:0 0 6px;padding-bottom:12px;border-bottom:3px solid #0b6e4f;}
-  .meta{font-size:13px;color:#6b7680;margin:4px 0;}
-  .meta:last-of-type{margin-bottom:18px;}
+  /* ============ 标题 ============ */
+  h1{
+    font-size:30px; line-height:1.28; letter-spacing:-.01em;
+    color:var(--ink); margin-bottom:10px;
+  }
+  h1 span{color:var(--green);}
+  .subtitle{font-size:14px; color:var(--muted); margin-bottom:6px;}
+  .hero{
+    background:linear-gradient(135deg,#0b6e4f 0%,#0e8a63 55%,#12a374 100%);
+    border-radius:16px; padding:32px 30px; color:#fff;
+    margin-bottom:32px; position:relative; overflow:hidden;
+    box-shadow:0 8px 28px rgba(11,110,79,.28);
+  }
+  .hero::after{
+    content:""; position:absolute; right:-40px; top:-40px;
+    width:220px; height:220px; border-radius:50%;
+    background:rgba(255,255,255,.08);
+  }
+  .hero::before{
+    content:""; position:absolute; right:60px; bottom:-70px;
+    width:160px; height:160px; border-radius:50%;
+    background:rgba(255,255,255,.06);
+  }
+  .hero h1{color:#fff; position:relative; z-index:1;}
+  .hero p{color:rgba(255,255,255,.85); font-size:14px; position:relative; z-index:1;}
+  .hero-tags{display:flex; flex-wrap:wrap; gap:8px; margin-top:16px; position:relative; z-index:1;}
+  .hero-tag{
+    background:rgba(255,255,255,.16); border:1px solid rgba(255,255,255,.25);
+    padding:4px 12px; border-radius:20px; font-size:12.5px; font-weight:600;
+    -webkit-backdrop-filter:blur(4px); backdrop-filter:blur(4px);
+  }
 
   h2{
-    font-size:19px;color:#0b6e4f;
-    margin:30px 0 12px;padding:9px 14px;
-    background:#e8f5ef;border-left:4px solid #0b6e4f;
-    border-radius:0 8px 8px 0;
-    scroll-margin-top:calc(66px + env(safe-area-inset-top));
+    font-size:21px; color:var(--green);
+    margin:44px 0 16px; padding-bottom:10px;
+    border-bottom:2px solid var(--green-l);
+    scroll-margin-top:calc(var(--nav-h) + 20px);
+    display:flex; align-items:center; gap:10px;
+  }
+  h2 .num{
+    display:inline-flex; align-items:center; justify-content:center;
+    width:30px; height:30px; border-radius:9px; flex-shrink:0;
+    background:var(--green); color:#fff; font-size:14px; font-weight:800;
   }
   h3{
-    font-size:16px;color:#24313d;margin:22px 0 8px;
-    padding-left:9px;border-left:3px solid #9cc9b6;
-    scroll-margin-top:calc(66px + env(safe-area-inset-top));
+    font-size:16.5px; color:var(--ink2); margin:26px 0 10px;
+    padding-left:11px; border-left:3px solid var(--green);
+    scroll-margin-top:calc(var(--nav-h) + 20px);
   }
+  p{margin:9px 0;}
+  strong{color:#11161b; font-weight:700;}
+  a{color:var(--green);}
 
-  p{margin:8px 0;}
-  strong{color:#11161b;}
-  ul,ol{margin:8px 0;padding-left:22px;}
+  ul,ol{margin:9px 0; padding-left:24px;}
   li{margin:5px 0;}
+  li::marker{color:var(--green);}
 
   code{
-    font-family:Menlo,Consolas,monospace;font-size:.86em;
-    background:#eef2f5;color:#b3541e;padding:1px 5px;border-radius:4px;
+    font-family:"SFMono-Regular",Consolas,Menlo,monospace; font-size:.86em;
+    background:#eef2f5; color:#b3541e; padding:2px 6px; border-radius:5px;
   }
   pre{
-    background:#24313d;color:#e6edf3;
-    padding:13px 15px;border-radius:8px;overflow-x:auto;
-    font-size:13px;line-height:1.6;margin:12px 0;
-    -webkit-overflow-scrolling:touch;
+    background:#1a2530; color:#e6edf3; padding:16px 18px; border-radius:10px;
+    overflow-x:auto; font-size:13px; line-height:1.65; margin:14px 0;
+    box-shadow:var(--shadow2);
   }
-  pre code{background:none;color:#e6edf3;padding:0;font-size:13px;}
+  pre code{background:none; color:#e6edf3; padding:0; font-size:13px;}
 
-  blockquote{
-    background:#e8f5ef;border-left:4px solid #0b6e4f;
-    padding:10px 14px;margin:12px 0;border-radius:0 6px 6px 0;font-size:15px;
-  }
-  blockquote p{margin:3px 0;}
-
-  /* 卡片 */
+  /* ============ 卡片 ============ */
   .card{
-    background:#fff;border-radius:10px;padding:13px 15px;margin:10px 0;
-    box-shadow:0 1px 5px rgba(0,0,0,.07);border-left:4px solid #9cc9b6;
+    background:var(--card); border-radius:12px; padding:14px 16px;
+    margin:11px 0; box-shadow:var(--shadow);
+    border-left:4px solid #9cc9b6;
+    transition:transform .18s, box-shadow .18s;
   }
-  .card.bow{border-left-color:#2e8b57;}
-  .card.crossbow{border-left-color:#b3541e;}
-  .card.relic{border-left-color:#8a6d3b;}
-  .card.boss{border-left-color:#c0392b;background:#fff8f6;}
+  .card:hover{transform:translateY(-1px); box-shadow:var(--shadow2);}
+  .card.bow{border-left-color:var(--bow);}
+  .card.cross{border-left-color:var(--cross);}
+  .card.relic{border-left-color:var(--relic);}
+  .card.boss{border-left-color:var(--boss); background:#fffafa;}
+  .card.common{border-left-color:#9cc9b6;}
 
-  .card-head{display:flex;align-items:baseline;flex-wrap:wrap;margin-bottom:6px;}
-  .card-name{font-size:17px;font-weight:700;color:#11161b;margin-right:8px;}
+  .card-head{display:flex; align-items:center; flex-wrap:wrap; gap:7px; margin-bottom:7px;}
   .card-cost{
-    display:inline-block;background:#0b6e4f;color:#fff;
-    font-size:12px;font-weight:700;padding:1px 9px;
-    border-radius:10px;margin-right:6px;
+    display:inline-flex; align-items:center; justify-content:center;
+    min-width:24px; height:24px; padding:0 8px;
+    background:var(--green); color:#fff;
+    font-size:12.5px; font-weight:800; border-radius:8px;
   }
   .card-cost.c0{background:#6b7680;}
+  .card-name{font-size:16.5px; font-weight:800; color:#11161b; margin-right:2px;}
   .card-type{
-    font-size:12px;color:#6b7680;background:#eef2f5;
-    padding:1px 8px;border-radius:10px;margin-right:6px;
+    font-size:11.5px; color:var(--muted); background:#eef2f5;
+    padding:2px 9px; border-radius:11px; font-weight:600;
   }
-  .card-body{font-size:15px;color:#24313d;}
+  .rar{
+    font-size:11.5px; font-weight:700; padding:2px 9px; border-radius:11px;
+  }
+  .rar.common{background:#eef2f5; color:#59636e;}
+  .rar.uncommon{background:#e3f0ff; color:#1a5fb4;}
+  .rar.rare{background:#fff3d6; color:#a86b00;}
+  .rar.boss{background:#ffe4e0; color:#b0301c;}
+  .rar.shop{background:#f0e4ff; color:#6b3fa0;}
+
+  .card-body{font-size:14.5px; color:var(--ink2);}
+  .card-up{
+    font-size:13px; color:#6b7680; margin-top:7px; padding-top:7px;
+    border-top:1px dashed var(--line);
+  }
+  .card-up strong{color:#1a5fb4;}
   .kw{
-    display:inline-block;font-size:12px;font-weight:700;color:#fff;
-    background:#b3541e;padding:0 6px;border-radius:4px;margin-right:3px;vertical-align:1px;
+    display:inline-block; font-size:11.5px; font-weight:800; color:#fff;
+    background:var(--cross); padding:1px 7px; border-radius:5px;
+    margin-right:4px; vertical-align:1px;
   }
-  .note{font-size:14px;color:#6b7680;margin:8px 0;}
-  .tag-bow{color:#2e8b57;font-weight:700;}
-  .tag-cross{color:#b3541e;font-weight:700;}
+  .kw.fire{background:#c0561a;}
+  .kw.consume{background:#6b3fa0;}
 
-  /* 表格 */
-  .tbl{width:100%;border-collapse:collapse;margin:12px 0;font-size:14px;background:#fff;border-radius:8px;overflow:hidden;box-shadow:0 1px 4px rgba(0,0,0,.05);}
-  .tbl th,.tbl td{padding:9px 11px;border-bottom:1px solid #e4e8ec;text-align:left;vertical-align:top;}
-  .tbl th{background:#eef2f5;font-weight:600;color:#24313d;white-space:nowrap;}
-  .tbl tr:last-child td{border-bottom:none;}
-  .tbl td:first-child{font-weight:600;color:#11161b;white-space:nowrap;}
+  /* ============ 表格 ============ */
+  .tbl-wrap{overflow-x:auto; margin:14px 0; border-radius:12px; box-shadow:var(--shadow);}
+  table{width:100%; border-collapse:collapse; font-size:14px; background:#fff; min-width:520px;}
+  th,td{padding:10px 13px; text-align:left; vertical-align:top; border-bottom:1px solid var(--line);}
+  th{background:#eef2f5; font-weight:700; color:var(--ink2); white-space:nowrap; font-size:13px;}
+  tr:last-child td{border-bottom:none;}
+  tbody tr:hover{background:#fafbfc;}
+  td:first-child{font-weight:700; color:#11161b; white-space:nowrap;}
 
-  .summary{
-    background:#e8f5ef;border:1px solid #b8ddcc;border-radius:10px;
-    padding:15px 17px;margin:26px 0 10px;font-size:15px;
+  /* ============ 提示块 ============ */
+  .note{
+    background:var(--green-l); border:1px solid #b8ddcc; border-radius:11px;
+    padding:14px 17px; margin:16px 0; font-size:14.5px;
   }
-  .summary strong{color:#0b6e4f;}
+  .note strong{color:var(--green);}
+  .warn{
+    background:#fff8e6; border:1px solid #f0dca8; border-radius:11px;
+    padding:14px 17px; margin:16px 0; font-size:14.5px;
+  }
+  .warn strong{color:#a86b00;}
 
-  hr{border:none;border-top:1px solid #d1d9e0;margin:26px 0;}
+  .divider{height:1px; background:var(--line); margin:36px 0;}
 
-  /* 回到顶部 */
+  .stat-grid{display:grid; grid-template-columns:repeat(auto-fit,minmax(140px,1fr)); gap:12px; margin:16px 0;}
+  .stat{
+    background:#fff; border-radius:12px; padding:16px; text-align:center;
+    box-shadow:var(--shadow);
+  }
+  .stat-num{font-size:26px; font-weight:800; color:var(--green); line-height:1.2;}
+  .stat-label{font-size:12.5px; color:var(--muted); margin-top:4px;}
+
+  /* ============ 回到顶部 ============ */
   .back-top{
-    position:fixed;right:16px;z-index:90;
-    bottom:calc(20px + env(safe-area-inset-bottom));
-    width:44px;height:44px;border-radius:50%;
-    background:#0b6e4f;color:#fff;border:none;
-    box-shadow:0 3px 12px rgba(11,110,79,.35);
-    display:flex;align-items:center;justify-content:center;
-    opacity:0;visibility:hidden;transform:translateY(10px);
-    transition:opacity .25s,visibility .25s,transform .25s;cursor:pointer;
+    position:fixed; right:20px; z-index:90;
+    bottom:calc(24px + env(safe-area-inset-bottom));
+    width:46px; height:46px; border-radius:50%;
+    background:var(--green); color:#fff; border:none; cursor:pointer;
+    box-shadow:0 4px 16px rgba(11,110,79,.4);
+    display:flex; align-items:center; justify-content:center;
+    opacity:0; visibility:hidden; transform:translateY(12px);
+    transition:all .25s;
   }
-  .back-top.show{opacity:1;visibility:visible;transform:translateY(0);}
-  .back-top:active{background:#085c41;}
-  .back-top svg{width:20px;height:20px;}
+  .back-top.show{opacity:1; visibility:visible; transform:translateY(0);}
+  .back-top:active{transform:scale(.94);}
 
-  @media (max-width:360px){
+  /* ============ 移动端目录抽屉 ============ */
+  .mask{
+    position:fixed; inset:0; z-index:200; background:rgba(0,0,0,.45);
+    opacity:0; visibility:hidden; transition:all .25s;
+  }
+  .mask.show{opacity:1; visibility:visible;}
+  .drawer{
+    position:fixed; top:0; right:0; bottom:0; z-index:201;
+    width:80%; max-width:320px; background:#fff;
+    transform:translateX(100%); transition:transform .3s cubic-bezier(.4,0,.2,1);
+    padding-top:env(safe-area-inset-top);
+    display:flex; flex-direction:column;
+    box-shadow:-6px 0 28px rgba(0,0,0,.16);
+  }
+  .drawer.show{transform:translateX(0);}
+  .drawer-head{
+    display:flex; align-items:center; justify-content:space-between;
+    padding:18px 20px 14px; border-bottom:1px solid var(--line);
+  }
+  .drawer-head strong{font-size:16px; color:var(--green);}
+  .drawer-close{
+    width:32px; height:32px; border-radius:50%; border:none;
+    background:#eef2f5; color:var(--muted); font-size:16px; cursor:pointer;
+  }
+  .drawer-list{flex:1; overflow-y:auto; padding:10px 0; -webkit-overflow-scrolling:touch;}
+  .drawer-list a{
+    display:block; padding:12px 22px; font-size:15px; color:var(--ink2);
+    text-decoration:none; border-left:3px solid transparent;
+  }
+  .drawer-list a.active{color:var(--green); font-weight:700; border-left-color:var(--green); background:var(--green-l);}
+
+  .only-mobile{display:none;}
+
+  @media (max-width:900px){
+    .side{display:none;}
+    .only-mobile{display:flex;}
+    .layout{padding:20px 14px 70px;}
+    h1{font-size:24px;}
+    .hero{padding:26px 22px; border-radius:14px;}
+    h2{font-size:19px;}
+    .stat-grid{grid-template-columns:repeat(2,1fr);}
+  }
+  @media (max-width:420px){
     body{font-size:15px;}
-    h1{font-size:20px;}
-    h2{font-size:17px;}
-    .tbl{font-size:13px;}
-    .tbl th,.tbl td{padding:8px 9px;}
+    .hero h1{font-size:22px;}
+    .tbl-wrap table{min-width:460px;}
+  }
+  @media print{
+    .nav,.side,.back-top,.mask,.drawer,.hero-tags{display:none !important;}
+    body{padding-top:0;}
+    .layout{display:block; padding:0;}
+    .card,.tbl-wrap{box-shadow:none; border:1px solid var(--line);}
+    h2{page-break-after:avoid;}
+    .card,.tbl-wrap{page-break-inside:avoid;}
   }
 </style>
 </head>
 <body>
 
-<!-- 顶部固定栏 -->
-<div class="topbar">
-  <div class="topbar-title">Stevemod 弓弩流派</div>
-  <button class="toc-btn" id="tocBtn" aria-label="打开目录">
-    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><line x1="4" y1="7" x2="20" y2="7"/><line x1="4" y1="12" x2="20" y2="12"/><line x1="4" y1="17" x2="14" y2="17"/></svg>
-    目录
-  </button>
-</div>
+<!-- ============ 顶部导航 ============ -->
+<nav class="nav">
+  <div class="nav-logo">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+      <path d="M3 21l18-18M3 21l4-1 1-4M3 21l1-4 4-1"/><circle cx="18" cy="6" r="1.6" fill="currentColor"/>
+    </svg>
+    Stevemod 弓弩流派
+  </div>
+  <div class="nav-actions">
+    <button class="nav-btn only-mobile" id="openDrawer">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round">
+        <line x1="4" y1="7" x2="20" y2="7"/><line x1="4" y1="12" x2="20" y2="12"/><line x1="4" y1="17" x2="14" y2="17"/>
+      </svg>
+      目录
+    </button>
+    <button class="nav-btn" id="printBtn">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+        <polyline points="6 9 6 2 18 2 18 9"/><path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"/><rect x="6" y="14" width="12" height="8"/>
+      </svg>
+      打印
+    </button>
+  </div>
+</nav>
 
-<!-- 目录浮层（增加h3子项，class="sub"缩进） -->
+<!-- ============ 移动端抽屉 ============ -->
 <div class="mask" id="mask"></div>
-<div class="toc-panel" id="tocPanel">
-  <div class="toc-head">
-    <span class="toc-head-title">目录</span>
-    <button class="toc-close" id="tocClose" aria-label="关闭">✕</button>
+<aside class="drawer" id="drawer">
+  <div class="drawer-head">
+    <strong>目录</strong>
+    <button class="drawer-close" id="closeDrawer">✕</button>
   </div>
-  <div class="toc-list" id="tocList">
-    <a class="toc-item" data-target="s1">1. 设计概述</a>
-    <a class="toc-item" data-target="s2">2. 核心机制</a>
-    <a class="toc-item sub" data-target="s2-1"> 2.1 箭袋牌堆</a>
-    <a class="toc-item sub" data-target="s2-2"> 2.2 弓：发射</a>
-    <a class="toc-item sub" data-target="s2-3"> 2.3 弩：装填 → 发射</a>
-    <a class="toc-item sub" data-target="s2-4"> 2.4 伤害公式</a>
-    <a class="toc-item sub" data-target="s2-5"> 2.5 空袋规则</a>
-    <a class="toc-item sub" data-target="s2-6"> 2.6 消耗堆与回收</a>
-    <a class="toc-item sub" data-target="s2-7"> 2.7 迟缓：延后敌人意图</a>
-    <a class="toc-item sub" data-target="s2-8"> 2.8 再生：MC 数值体系</a>
-    <a class="toc-item" data-target="s3">3. 箭种表</a>
-    <a class="toc-item" data-target="s4">4. 附魔表</a>
-    <a class="toc-item sub" data-target="s4-1"> 4.1 弓附魔</a>
-    <a class="toc-item sub" data-target="s4-2"> 4.2 弩附魔</a>
-    <a class="toc-item" data-target="s5">5. 初始遗物</a>
-    <a class="toc-item" data-target="s6">6. 弓专属卡牌</a>
-    <a class="toc-item" data-target="s7">7. 弩专属卡牌与派生牌</a>
-    <a class="toc-item sub" data-target="s7-1"> 7.1 派生牌命名</a>
-    <a class="toc-item sub" data-target="s7-2"> 7.2 派生牌效果</a>
-    <a class="toc-item" data-target="s8">8. 通用卡牌</a>
-    <a class="toc-item" data-target="s9">9. 配套遗物</a>
-    <a class="toc-item" data-target="s10">10. 平衡与实现要点</a>
-    <a class="toc-item sub" data-target="s10-1"> 10.1 空袋禁射的压力</a>
-    <a class="toc-item sub" data-target="s10-2"> 10.2 累乘锚点</a>
-    <a class="toc-item sub" data-target="s10-3"> 10.3 迟缓的 Boss 价值</a>
-    <a class="toc-item sub" data-target="s10-4"> 10.4 再生全局统一</a>
-    <a class="toc-item sub" data-target="s10-5"> 10.5 穿透相邻判定</a>
-    <a class="toc-item sub" data-target="s10-6"> 10.6 首射之弓边界</a>
-    <a class="toc-item sub" data-target="s10-7"> 10.7 实现要点</a>
-    <a class="toc-item" data-target="s11">11. 卡池总览</a>
-  </div>
-</div>
+  <div class="drawer-list" id="drawerList"></div>
+</aside>
 
-<!-- 回到顶部 -->
+<!-- ============ 回到顶部 ============ -->
 <button class="back-top" id="backTop" aria-label="回到顶部">
-  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 15 12 9 18 15"/></svg>
+  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round">
+    <polyline points="6 15 12 9 18 15"/>
+  </svg>
 </button>
 
-<!-- 正文 -->
-<div class="wrap">
+<div class="layout">
 
-  <h1>Stevemod 弓弩流派设计文档</h1>
-  <p class="meta">杀戮尖塔 2 · Stevemod · Steve 角色弓/弩流派</p>
-  <p class="meta">版本：最终整合版</p>
+  <!-- ============ 侧边目录 ============ -->
+  <aside class="side">
+    <div class="side-title">目录</div>
+    <nav id="sideList"></nav>
+  </aside>
 
-  <hr>
+  <!-- ============ 正文 ============ -->
+  <main class="main">
 
-  <h2 id="s1">1. 设计概述</h2>
-  <p>把 Minecraft 的弓、弩、箭机制移植进杀戮尖塔 2，三条硬规则：</p>
-  <ul>
-    <li><strong>弓与弩是发射媒介，本身不造成伤害</strong>；伤害全部来自被发射的箭。</li>
-    <li><strong>箭袋是独立于抽牌堆/弃牌堆的第三牌堆</strong>，无上限、跨战斗继承、战斗内免费排序。</li>
-    <li><strong>箭袋为空时，弓与弩均不可打出</strong>。</li>
-  </ul>
-  <p>MC 的“蓄力越久伤害越高”落地为箭袋越厚、箭种越精、单回合发射越多，箭伤害越高。弩的“先装填后击发”落地为：弩牌只装填，生成 0 费保留派生牌，再打出才发射。</p>
+    <header class="hero">
+      <h1>Stevemod 弓弩流派<br><span style="color:#b8f0d6">设计文档 · 最终版</span></h1>
+      <p>杀戮尖塔 2 · Stevemod · Steve 角色 · 弓 / 弩双线独立流派</p>
+      <div class="hero-tags">
+        <span class="hero-tag">箭袋持久化</span>
+        <span class="hero-tag">空袋禁射</span>
+        <span class="hero-tag">弓·发射</span>
+        <span class="hero-tag">弩·装填</span>
+        <span class="hero-tag">附魔驱动</span>
+        <span class="hero-tag">累乘增伤</span>
+      </div>
+    </header>
 
-  <h2 id="s2">2. 核心机制</h2>
+    <!-- ========== 1 ========== -->
+    <h2 id="s1"><span class="num">1</span>设计概述</h2>
+    <p>把 Minecraft 的弓、弩、箭机制移植进杀戮尖塔 2。核心是三条硬规则：</p>
+    <ul>
+      <li><strong>弓与弩是发射媒介，本身不造成伤害</strong>；一切伤害与效果来自被发射的箭。</li>
+      <li><strong>箭袋是独立于抽牌堆 / 弃牌堆的第三牌堆</strong>，无上限、跨战斗继承、战斗内免费拖拽排序。</li>
+      <li><strong>箭袋为空时，弓与弩均不可打出</strong>。</li>
+    </ul>
+    <p>MC 的“蓄力越久、箭速越高、伤害越高”落地为：箭袋越厚、箭种越精、单回合发射越多，箭的伤害越高。弩的“先装填后击发”落地为：弩牌打出时只装填，生成 0 费保留的派生牌，下回合或当回合再发射。</p>
 
-  <h3 id="s2-1">2.1 箭袋牌堆</h3>
-  <ul>
-    <li>独立第三牌堆，<strong>无数量上限</strong>。</li>
-    <li><strong>跨战斗完整继承</strong>：未取用的箭带入下一场、下一层、下一章，存于 RunState。</li>
-    <li>战斗内<strong>免费无限拖拽排序</strong>；地图/商店只读。</li>
-    <li>HUD 常驻显示总数、<code>NEXT ▸ 下一发箭种</code>、各箭种数量徽章。</li>
-  </ul>
+    <div class="note">
+      <strong>双线独立：</strong>弓与弩是两种独立流派，同一局只会出现其中一条。两线共享箭袋规则、箭种表、附魔表与伤害公式，但起始遗物、起始牌组、专属卡池与 Boss 遗物各自独立；功能相似的辅助牌合并为<strong>通用池</strong>，两线都可出现。
+    </div>
 
-  <h3 id="s2-2">2.2 弓：发射</h3>
-  <ul>
-    <li>打出弓牌 → 袋顶取箭 → <strong>立即结算</strong> → 箭进消耗堆。</li>
-    <li>无派生牌、无「装填」关键词。空袋不可打出。</li>
-  </ul>
+    <!-- ========== 2 ========== -->
+    <h2 id="s2"><span class="num">2</span>核心机制</h2>
 
-  <h3 id="s2-3">2.3 弩：装填 → 发射</h3>
-  <ul>
-    <li>打出弩牌 → 袋顶取箭 → <strong>不结算伤害</strong> → 生成 <strong>0 费、保留</strong>派生牌 → 原弩进弃牌堆。</li>
-    <li>派生牌卡名 = <strong>装填 + 箭种名 + 的 + 弩名</strong>。</li>
-    <li>打出派生牌 → <strong>发射</strong>所装填的箭 → 箭进消耗堆。</li>
-    <li>派生牌保留，本回合不打就留到下回合，占手牌位。</li>
-    <li>箭数不足时弩不可打出。战斗结束未打出的派生牌销毁，其箭进消耗堆。</li>
-  </ul>
+    <h3>2.1 箭袋牌堆</h3>
+    <ul>
+      <li>独立第三牌堆，<strong>无数量上限</strong>。</li>
+      <li><strong>跨战斗完整继承</strong>：战斗结束未取用的箭原样带入下一场战斗、下一层、下一章，数据存于 RunState。</li>
+      <li>战斗内可<strong>免费、无限次拖拽排序</strong>，零成本；地图 / 商店等非战斗场景只读。</li>
+      <li>HUD 常驻显示：总数、<code>NEXT ▸ 下一发箭种</code>、各箭种数量徽章；展开面板含消耗堆箭统计。</li>
+    </ul>
 
-  <h3 id="s2-4">2.4 伤害公式</h3>
-  <pre><code>单支箭伤害 = 箭种基础 + 卡牌修正 + 满弦 + 力量附魔 + 力量遗物
-最终伤害 = 单支箭伤害 × 1.5(易伤) × 1.25^发光层数 × 其他</code></pre>
-  <ul>
-    <li>加算项先求和，再进乘算。</li>
-    <li>易伤 ×1.5，多层只叠持续。</li>
-    <li>发光每层 ×1.25，<strong>累乘</strong>（2 层 ×1.5625，3 层 ×1.953125）。</li>
-  </ul>
+    <h3>2.2 弓：发射</h3>
+    <ul>
+      <li>打出弓牌 → 从袋顶取箭 → <strong>立即结算伤害与箭种效果</strong> → 箭进入消耗堆。</li>
+      <li>弓牌无派生牌、无「装填」关键词。</li>
+      <li>空袋不可打出（UI 置灰）。</li>
+    </ul>
 
-  <h3 id="s2-5">2.5 空袋规则</h3>
-  <table class="tbl">
-    <tr><th>牌型</th><th>袋空时</th></tr>
-    <tr><td>弓牌</td><td>不可打出</td></tr>
-    <tr><td>弩牌</td><td>不可打出</td></tr>
-    <tr><td>发射至多 N 支</td><td>至少需 1 支</td></tr>
-    <tr><td>发射 N 支</td><td>需 ≥ N 支</td></tr>
-  </table>
+    <h3>2.3 弩：装填 → 发射</h3>
+    <ul>
+      <li>打出弩牌 → 从袋顶取箭 → <strong>不结算伤害</strong> → 生成一张 <strong>0 费、保留</strong>的派生牌置入手牌 → 原弩牌进弃牌堆。</li>
+      <li>派生牌卡名 = <strong>「装填」+ 所装填箭种名 + 「的」+ 弩名</strong>。</li>
+      <li>打出派生牌 → <strong>发射</strong>所装填的箭，结算伤害与箭种效果 → 箭进入消耗堆。</li>
+      <li>派生牌带「保留」：本回合没打出就留到下回合，占一个手牌位。</li>
+      <li>装填时若箭袋箭数不足装填需求，弩牌不可打出。战斗结束时仍未打出的派生牌销毁，其锁定的箭进入消耗堆。</li>
+    </ul>
 
-  <h3 id="s2-6">2.6 消耗堆与回收</h3>
-  <p>箭用后进消耗堆（战斗内，不跨战斗），在消耗堆查看器中以“已消耗弹药”分区按箭种计数。回收牌可从消耗堆取回箭。</p>
+    <h3>2.4 伤害公式</h3>
+    <pre><code>单支箭伤害 = 箭种基础伤害 + 卡牌修正 + 满弦层数 + 力量附魔 + 力量遗物
+最终伤害   = 单支箭伤害 × 1.5（易伤）× 1.25^发光层数 × 其他乘数</code></pre>
+    <ul>
+      <li>所有加算项先求和，再统一进入乘算。</li>
+      <li><strong>易伤</strong>：×1.5，多层只叠持续时间。</li>
+      <li><strong>发光</strong>：每层 ×1.25，<strong>多层累乘</strong>（2 层 ×1.5625，3 层 ×1.953125）。</li>
+      <li>易伤与发光相乘，不进加算。</li>
+    </ul>
 
-  <h3 id="s2-7">2.7 迟缓：延后敌人意图</h3>
-  <p><strong>迟缓 X</strong>：目标接下来 X 次行动跳过，意图<strong>保留并顺延</strong>。</p>
-  <ul>
-    <li>1 层 = 少打一次，意图顺延一回合。</li>
-    <li>2 层 = 跳过两次，意图队列后移两回合。</li>
-    <li>UI 在敌人头顶显示“迟缓 X”与顺延后的意图。</li>
-  </ul>
+    <h3>2.5 空袋规则</h3>
+    <div class="tbl-wrap">
+      <table>
+        <thead><tr><th>牌型</th><th>袋空时</th></tr></thead>
+        <tbody>
+          <tr><td>弓牌</td><td>不可打出</td></tr>
+          <tr><td>弩牌</td><td>不可打出（无法装填）</td></tr>
+          <tr><td>“发射至多 N 支”类</td><td>至少需 1 支箭</td></tr>
+          <tr><td>“发射 N 支”类</td><td>需 ≥ N 支箭</td></tr>
+        </tbody>
+      </table>
+    </div>
 
-  <h3 id="s2-8">2.8 再生：MC 数值体系</h3>
-  <p><strong>再生 X（N 回合）</strong>：每回合结束回 X 点，持续 N 回合，<strong>不递减</strong>。总恢复 = X×N。适用于 Stevemod 全流派，与原版再生分开结算。</p>
+    <h3>2.6 消耗堆与回收</h3>
+    <p>箭被发射 / 取用后进入<strong>消耗堆</strong>（战斗内概念，不跨战斗），在消耗堆查看器中以“已消耗弹药”分区按箭种计数，不混入卡牌网格。回收类卡牌与遗物可从消耗堆取回箭放入箭袋。</p>
 
-  <h2 id="s3">3. 箭种表</h2>
-  <table class="tbl">
-    <tr><th>箭种</th><th>基础</th><th>效果</th></tr>
-    <tr><td>箭</td><td>6</td><td>—</td></tr>
-    <tr><td>伤害之箭</td><td>10</td><td>—</td></tr>
-    <tr><td>剧毒之箭</td><td>4</td><td>3 层中毒</td></tr>
-    <tr><td>虚弱之箭</td><td>4</td><td>2 层虚弱</td></tr>
-    <tr><td>迟缓之箭</td><td>4</td><td>1 层迟缓</td></tr>
-    <tr><td>迅捷之箭</td><td>4</td><td>抽 1 张</td></tr>
-    <tr><td>再生之箭</td><td>4</td><td>再生 II（3 回合）</td></tr>
-    <tr><td>光灵箭</td><td>5</td><td>1 层发光（受伤 ×1.25，累乘）</td></tr>
-  </table>
+    <h3>2.7 迟缓：延后敌人意图</h3>
+    <p><strong>迟缓 X</strong>：目标在接下来 X 次行动中跳过行动，其意图<strong>保留并顺延</strong>到迟缓结束后执行。</p>
+    <ul>
+      <li>例：敌人意图“攻击 12”，被施加 1 层迟缓 → 本回合不攻击，意图保留；下回合执行“攻击 12”，同时生成新意图。</li>
+      <li>2 层迟缓 = 跳过 2 次行动，意图队列整体后移 2 回合。</li>
+      <li>UI 在敌人头顶显示“迟缓 X”与顺延后的意图预览。</li>
+    </ul>
 
-  <h2 id="s4">4. 附魔表</h2>
-  <p>每张弓/弩 1 个附魔槽（Boss 遗物「附魔台」扩为 2 个）。获得途径：附魔台碎片、附魔之瓶、附魔台。</p>
-  <h3 id="s4-1">4.1 弓附魔</h3>
-  <table class="tbl">
-    <tr><th>附魔</th><th>效果</th></tr>
-    <tr><td>力量</td><td>箭伤害 +3</td></tr>
-    <tr><td>冲击</td><td>额外 1 层虚弱</td></tr>
-    <tr><td>火矢</td><td>额外 2 层灼烧</td></tr>
-    <tr><td>无限</td><td>50% 不消耗箭</td></tr>
-  </table>
-  <h3 id="s4-2">4.2 弩附魔</h3>
-  <table class="tbl">
-    <tr><th>附魔</th><th>效果</th></tr>
-    <tr><td>多重射击</td><td>装填数 +1</td></tr>
-    <tr><td>快速装填</td><td>装填时抽 1 张</td></tr>
-    <tr><td>穿透</td><td>对左右相邻单位各造成等量伤害</td></tr>
-  </table>
-  <p class="note">附魔效果装填时锁定进派生牌。穿透取目标左右各一名存活敌人，各吃满等量伤害。</p>
+    <h3>2.8 再生：MC 数值体系</h3>
+    <p><strong>再生 X（持续 N 回合）</strong>：每回合结束恢复 X 点生命，持续 N 回合，<strong>不递减</strong>。总恢复量 = X × N，固定可预期。适用于 Stevemod 全流派，与原版再生分开结算，不混用、不叠加。</p>
 
-  <h2 id="s5">5. 初始遗物</h2>
-  <div class="card relic">
-    <div class="card-head"><span class="card-name">箭袋</span><span class="card-type">初始</span></div>
-    <div class="card-body">战斗开始箭袋获得 3 支箭；每回合开始获得 1 支箭。</div>
-  </div>
-  <div class="card relic">
-    <div class="card-head"><span class="card-name">先古箭袋</span><span class="card-type">先古版</span></div>
-    <div class="card-body">战斗开始 5 支箭（含 2 支随机药水箭/光灵箭）；每回合开始 2 支随机箭（普通箭 50%）。</div>
-  </div>
+    <!-- ========== 3 ========== -->
+    <h2 id="s3"><span class="num">3</span>箭种表</h2>
+    <div class="tbl-wrap">
+      <table>
+        <thead><tr><th>箭种（MC 官方译名）</th><th>基础伤害</th><th>取用效果（无需附魔）</th></tr></thead>
+        <tbody>
+          <tr><td>箭</td><td>6</td><td>—</td></tr>
+          <tr><td>伤害之箭</td><td>10</td><td>—</td></tr>
+          <tr><td>剧毒之箭</td><td>4</td><td>施加 3 层中毒</td></tr>
+          <tr><td>虚弱之箭</td><td>4</td><td>施加 2 层虚弱</td></tr>
+          <tr><td>迟缓之箭</td><td>4</td><td>施加 1 层迟缓（跳过下一次行动，意图顺延）</td></tr>
+          <tr><td>迅捷之箭</td><td>4</td><td>抽 1 张牌</td></tr>
+          <tr><td>再生之箭</td><td>4</td><td>获得“再生 II（3 回合）”（MC 数值，不递减）</td></tr>
+          <tr><td>光灵箭</td><td>5</td><td>目标获得 1 层发光（受伤 ×1.25，2 回合，累乘）</td></tr>
+        </tbody>
+      </table>
+    </div>
+    <p>普通箭 6 = 打击锚点；伤害之箭 10 是高伤无附加；其余药水箭用伤害换效果；光灵箭是唯一稳定增伤乘算入口。</p>
 
-  <h2 id="s6">6. 弓专属卡牌</h2>
-  <p class="note"><span class="tag-bow">弓线</span>：即时发射、立即结算、空袋禁射。卡牌只提供“发射几支”和非伤害附加。</p>
+    <!-- ========== 4 ========== -->
+    <h2 id="s4"><span class="num">4</span>附魔表</h2>
+    <p>每张弓 / 弩卡牌有 1 个附魔槽位（Boss 遗物「附魔台」扩为 2 个）。附魔永久附着于该卡牌副本。获得途径：附魔台碎片（遗物）、附魔之瓶（卡牌）、附魔台（Boss 遗物）。</p>
 
-  <div class="card bow">
-    <div class="card-head"><span class="card-cost">1</span><span class="card-name">弓</span><span class="card-type">攻击</span></div>
-    <div class="card-body">发射 1 支箭。</div>
-  </div>
-  <div class="card bow">
-    <div class="card-head"><span class="card-cost">1</span><span class="card-name">连珠箭</span><span class="card-type">攻击</span></div>
-    <div class="card-body">发射 1 支箭；本回合每已发射 1 支箭（含此箭），此箭伤害 +1。</div>
-  </div>
-  <div class="card bow">
-    <div class="card-head"><span class="card-cost">2</span><span class="card-name">拉满弓</span><span class="card-type">攻击</span></div>
-    <div class="card-body">若本回合尚未发射箭：发射 2 支箭，每支伤害 +3；否则发射 1 支箭，伤害 +2。</div>
-  </div>
-  <div class="card bow">
-    <div class="card-head"><span class="card-cost">2</span><span class="card-name">箭雨</span><span class="card-type">攻击</span></div>
-    <div class="card-body">发射 2 支箭，每支对所有敌人造成伤害并触发箭种效果。</div>
-  </div>
-  <div class="card bow">
-    <div class="card-head"><span class="card-cost">2</span><span class="card-name">齐射</span><span class="card-type">攻击</span></div>
-    <div class="card-body">发射至多 3 支箭，每支对随机敌人结算。<strong>消耗</strong>。升级：至多 5 支。</div>
-  </div>
-  <div class="card bow">
-    <div class="card-head"><span class="card-cost">2</span><span class="card-name">满弦</span><span class="card-type">能力</span></div>
-    <div class="card-body">每发射 1 支箭获得 1 层满弦（每层箭伤害 +1，上限 8，跨回合保留）。</div>
-  </div>
-  <div class="card bow">
-    <div class="card-head"><span class="card-cost">1</span><span class="card-name">备箭</span><span class="card-type">能力</span></div>
-    <div class="card-body">每回合开始时，若箭袋特殊箭 ≥ 3，获得 2 格挡并抽 1 张牌。</div>
-  </div>
-  <div class="card bow">
-    <div class="card-head"><span class="card-cost">2</span><span class="card-name">箭袋充盈</span><span class="card-type">攻击</span></div>
-    <div class="card-body">发射 1 支箭；箭袋每有 5 支箭，此箭伤害 +2。</div>
-  </div>
+    <h3>弓附魔</h3>
+    <div class="tbl-wrap">
+      <table>
+        <thead><tr><th>附魔</th><th>效果</th></tr></thead>
+        <tbody>
+          <tr><td>力量</td><td>此弓发射的箭伤害 +3</td></tr>
+          <tr><td>冲击</td><td>此弓发射的箭额外施加 1 层虚弱</td></tr>
+          <tr><td>火矢</td><td>此弓发射的箭额外施加 2 层灼烧</td></tr>
+          <tr><td>无限</td><td>打出此弓时 50% 概率不消耗箭（箭留在袋中）</td></tr>
+        </tbody>
+      </table>
+    </div>
 
-  <h2 id="s7">7. 弩专属卡牌与派生牌</h2>
-  <p class="note"><span class="tag-cross">弩线</span>：付费装填 → 0 费保留 → 囤积倾泻。附魔装填时写入派生牌。</p>
+    <h3>弩附魔</h3>
+    <div class="tbl-wrap">
+      <table>
+        <thead><tr><th>附魔</th><th>效果</th></tr></thead>
+        <tbody>
+          <tr><td>多重射击</td><td>装填时额外从袋顶取 1 支箭（装填数 +1）</td></tr>
+          <tr><td>快速装填</td><td>装填时抽 1 张牌</td></tr>
+          <tr><td>穿透</td><td>发射的箭命中目标后，对目标左右相邻单位各造成等量伤害</td></tr>
+        </tbody>
+      </table>
+    </div>
+    <p class="card-up">附魔效果在装填时锁定进派生牌。穿透的相邻判定：目标左侧与右侧各一名存活敌人，各吃满等量伤害（含箭种与附魔效果），单目标战斗无额外收益。</p>
 
-  <div class="card crossbow">
-    <div class="card-head"><span class="card-cost">1</span><span class="card-name">弩</span><span class="card-type">攻击</span></div>
-    <div class="card-body"><span class="kw">装填</span>取箭 1，置入派生牌“装填[箭种]的弩”（0 费，保留）。</div>
-  </div>
-  <div class="card crossbow">
-    <div class="card-head"><span class="card-cost">2</span><span class="card-name">连发弩</span><span class="card-type">攻击</span></div>
-    <div class="card-body"><span class="kw">装填</span>取箭 2，置入派生牌“装填[箭种]的连发弩”（0 费，保留）。</div>
-  </div>
-  <div class="card crossbow">
-    <div class="card-head"><span class="card-cost">1</span><span class="card-name">瞄准</span><span class="card-type">技能</span></div>
-    <div class="card-body">本回合下一张弩装填时不消耗箭（复制袋顶箭），抽 1 张牌。</div>
-  </div>
-  <div class="card crossbow">
-    <div class="card-head"><span class="card-cost">1</span><span class="card-name">瞄准射击</span><span class="card-type">技能</span></div>
-    <div class="card-body">本回合下一张“装填…的弩”发射的箭，箭种效果触发两次。</div>
-  </div>
-  <div class="card crossbow">
-    <div class="card-head"><span class="card-cost">1</span><span class="card-name">囤箭待发</span><span class="card-type">技能</span></div>
-    <div class="card-body">手牌中所有“装填…的弩”费用变为 0（本场战斗）。抽 1 张牌。</div>
-  </div>
+    <!-- ========== 5 ========== -->
+    <h2 id="s5"><span class="num">5</span>池划分与通用牌</h2>
 
-  <h3 id="s7-1">7.1 派生牌命名</h3>
-  <p class="note">装填 + 箭种名 + 的 + 弩名。例：</p>
-  <table class="tbl">
-    <tr><th>装填</th><th>派生牌</th></tr>
-    <tr><td>箭</td><td>装填箭的弩</td></tr>
-    <tr><td>伤害之箭</td><td>装填伤害之箭的弩</td></tr>
-    <tr><td>光灵箭</td><td>装填光灵箭的弩</td></tr>
-    <tr><td>2 支同种</td><td>装填2支[箭种]的连发弩</td></tr>
-    <tr><td>2 支异种</td><td>装填[箭1]与[箭2]的连发弩</td></tr>
-  </table>
+    <h3>5.1 划分原则</h3>
+    <div class="tbl-wrap">
+      <table>
+        <thead><tr><th>池</th><th>内容</th><th>规则</th></tr></thead>
+        <tbody>
+          <tr><td>通用池</td><td>补弹、过牌、回收、附魔、防御、箭种转化、双线能力</td><td>两局都出现；文本可同时提到弓与弩，但不含「装填」动词（引用派生牌名除外）</td></tr>
+          <tr><td>弓专属池</td><td>发射类攻击牌、满弦体系、首射强化</td><td>只进弓局</td></tr>
+          <tr><td>弩专属池</td><td>装填类攻击牌、派生牌体系、节弹与装填放大</td><td>只进弩局</td></tr>
+        </tbody>
+      </table>
+    </div>
+    <p class="card-up">「装填」仍是弩专属关键词：通用牌里只出现“装填…的弩”作为派生牌名称引用，不把“装填”当动词用。</p>
 
-  <h3 id="s7-2">7.2 派生牌效果</h3>
-  <table class="tbl">
-    <tr><th>派生牌</th><th>费用</th><th>效果</th></tr>
-    <tr><td>装填[箭种]的弩</td><td>0</td><td>发射所装填的箭，伤害 +4；装填时箭袋 ≥ 10 改为 +10。</td></tr>
-    <tr><td>装填[箭种]的连发弩</td><td>0</td><td>发射所装填的 2 支箭，每支伤害 +2。</td></tr>
-  </table>
+    <h3>5.2 通用牌池（13 张）</h3>
 
-  <h2 id="s8">8. 通用卡牌</h2>
-  <div class="card">
-    <div class="card-head"><span class="card-cost c0">0</span><span class="card-name">补充箭矢</span><span class="card-type">技能</span></div>
-    <div class="card-body">抽 1 张。若本回合尚未发射箭，获得 1 支随机特殊箭；若本回合打出过弩，额外获得 1 支箭。</div>
-  </div>
-  <div class="card">
-    <div class="card-head"><span class="card-cost">1</span><span class="card-name">制箭</span><span class="card-type">技能</span></div>
-    <div class="card-body">获得 2 支随机药水箭或光灵箭。<strong>消耗</strong>。</div>
-  </div>
-  <div class="card">
-    <div class="card-head"><span class="card-cost">1</span><span class="card-name">回收箭</span><span class="card-type">技能</span></div>
-    <div class="card-body">从消耗堆取回至多 2 支箭放入箭袋；手牌每有 1 张“装填箭的弩”，额外取回 1 支。<strong>消耗</strong>。</div>
-  </div>
-  <div class="card">
-    <div class="card-head"><span class="card-cost">2</span><span class="card-name">重制箭矢</span><span class="card-type">技能</span></div>
-    <div class="card-body">从消耗堆取回至多 3 支箭放入箭袋；若全是普通箭，额外获得 2 支随机特殊箭。<strong>消耗</strong>。</div>
-  </div>
-  <div class="card">
-    <div class="card-head"><span class="card-cost">1</span><span class="card-name">附魔之瓶</span><span class="card-type">技能</span></div>
-    <div class="card-body">获得 1 个随机附魔，选择 1 张弓/弩附着。<strong>消耗</strong>。</div>
-  </div>
+    <div class="card common">
+      <div class="card-head"><span class="card-cost">1</span><span class="card-name">盾牌</span><span class="card-type">技能</span><span class="rar common">普通</span></div>
+      <div class="card-body">获得 5 格挡。</div>
+      <div class="card-up"><strong>升级：</strong>8 格挡。</div>
+    </div>
+    <div class="card common">
+      <div class="card-head"><span class="card-cost c0">0</span><span class="card-name">补充箭矢</span><span class="card-type">技能</span><span class="rar common">普通</span></div>
+      <div class="card-body">抽 1 张牌。若本回合尚未发射箭，获得 1 支随机特殊箭；若本回合打出过弩，额外获得 1 支箭。</div>
+      <div class="card-up"><strong>升级：</strong>抽 2 张。</div>
+    </div>
+    <div class="card common">
+      <div class="card-head"><span class="card-cost c0">0</span><span class="card-name">清点箭袋</span><span class="card-type">技能</span><span class="rar common">普通</span></div>
+      <div class="card-body">抽 1 张牌。查看箭袋。</div>
+      <div class="card-up"><strong>升级：</strong>抽 2 张。</div>
+    </div>
+    <div class="card common">
+      <div class="card-head"><span class="card-cost">1</span><span class="card-name">拉弦</span><span class="card-type">技能</span><span class="rar common">普通</span></div>
+      <div class="card-body">抽 2 张牌。选择一项：本回合下一支发射的箭伤害 +2；或获得 1 支箭（若手牌有“装填…的弩”，改为获得 1 支随机特殊箭）。</div>
+      <div class="card-up"><strong>升级：</strong>下一箭 +3；或获得 1 支随机特殊箭。</div>
+    </div>
+    <div class="card common">
+      <div class="card-head"><span class="card-cost">1</span><span class="card-name">制箭</span><span class="card-type">技能</span><span class="rar common">普通</span></div>
+      <div class="card-body">获得 2 支随机药水箭或光灵箭。<span class="kw consume">消耗</span></div>
+      <div class="card-up"><strong>升级：</strong>3 支。</div>
+    </div>
+    <div class="card common">
+      <div class="card-head"><span class="card-cost">1</span><span class="card-name">淬毒</span><span class="card-type">技能</span><span class="rar common">普通</span></div>
+      <div class="card-body">将箭袋中 1 支普通箭变为剧毒之箭。<span class="kw consume">消耗</span></div>
+      <div class="card-up"><strong>升级：</strong>变为 2 支。</div>
+    </div>
+    <div class="card common">
+      <div class="card-head"><span class="card-cost c0">0</span><span class="card-name">拾箭</span><span class="card-type">技能</span><span class="rar common">普通</span></div>
+      <div class="card-body">从消耗堆取回 1 支箭放入箭袋。<span class="kw consume">消耗</span></div>
+      <div class="card-up"><strong>升级：</strong>取回 2 支。</div>
+    </div>
+    <div class="card common">
+      <div class="card-head"><span class="card-cost">1</span><span class="card-name">备箭</span><span class="card-type">能力</span><span class="rar common">普通</span></div>
+      <div class="card-body">每回合开始时，若箭袋特殊箭 ≥ 3，获得 2 格挡并抽 1 张牌。</div>
+      <div class="card-up"><strong>升级：</strong>3 格挡并抽 1 张。</div>
+    </div>
+    <div class="card common">
+      <div class="card-head"><span class="card-cost">1</span><span class="card-name">回收箭</span><span class="card-type">技能</span><span class="rar common">普通</span></div>
+      <div class="card-body">从消耗堆取回至多 2 支箭放入箭袋；手牌每有 1 张“装填箭的弩”，额外取回 1 支。<span class="kw consume">消耗</span></div>
+      <div class="card-up"><strong>升级：</strong>至多 3 支。</div>
+    </div>
+    <div class="card common">
+      <div class="card-head"><span class="card-cost">2</span><span class="card-name">重制箭矢</span><span class="card-type">技能</span><span class="rar uncommon">罕见</span></div>
+      <div class="card-body">从消耗堆取回至多 3 支箭放入箭袋；若全是普通箭，额外获得 2 支随机特殊箭。<span class="kw consume">消耗</span></div>
+      <div class="card-up"><strong>升级：</strong>至多 4 支。</div>
+    </div>
+    <div class="card common">
+      <div class="card-head"><span class="card-cost">2</span><span class="card-name">箭术精通</span><span class="card-type">能力</span><span class="rar rare">稀有</span></div>
+      <div class="card-body">每回合你发射的第一支箭伤害 +1；每回合你第一次装填不消耗箭。</div>
+      <div class="card-up"><strong>升级：</strong>第一支箭 +2。</div>
+    </div>
+    <div class="card common">
+      <div class="card-head"><span class="card-cost">1</span><span class="card-name">附魔之瓶</span><span class="card-type">技能</span><span class="rar rare">稀有</span></div>
+      <div class="card-body">获得 1 个随机附魔，选择 1 张弓 / 弩附着。<span class="kw consume">消耗</span></div>
+      <div class="card-up"><strong>升级：</strong>选择 2 张弓 / 弩各附着 1 个随机附魔。</div>
+    </div>
+    <div class="card common">
+      <div class="card-head"><span class="card-cost">1</span><span class="card-name">箭袋回收</span><span class="card-type">能力</span><span class="rar rare">稀有</span></div>
+      <div class="card-body">每当你从消耗堆取回箭，额外取回 1 支同箭种。</div>
+      <div class="card-up"><strong>升级：</strong>费用 0。</div>
+    </div>
 
-  <h2 id="s9">9. 配套遗物</h2>
+    <div class="note">
+      <strong>合并说明：</strong>「补充箭矢」合并弓 / 弩两版，前半句服务弓、后半句服务弩；「拉弦」合并弓的“下一箭强化”与弩的“装填准备”，一条牌服务两种节奏；「回收箭」保留弩的额外回收条件，弓也能用；「淬毒」「备箭」从单线提为通用。
+    </div>
 
-  <div class="card relic">
-    <div class="card-head"><span class="card-name">燧石与钢</span><span class="card-type">普通</span></div>
-    <div class="card-body">战斗开始箭袋 +1 支箭。每回合发射的第一支箭伤害 +1。</div>
-  </div>
-  <div class="card relic">
-    <div class="card-head"><span class="card-name">箭羽</span><span class="card-type">普通</span></div>
-    <div class="card-body">每回合发射的第一支箭，箭种效果触发两次。</div>
-  </div>
-  <div class="card relic">
-    <div class="card-head"><span class="card-name">箭袋漏斗</span><span class="card-type">普通</span></div>
-    <div class="card-body">每回合发射 ≥ 3 支箭时，抽 1 张牌。</div>
-  </div>
-  <div class="card relic">
-    <div class="card-head"><span class="card-name">拾荒者</span><span class="card-type">普通</span></div>
-    <div class="card-body">每场战斗结束，从消耗堆取回 2 支箭放入箭袋（随机箭种）。</div>
-  </div>
-  <div class="card relic">
-    <div class="card-head"><span class="card-name">附魔台碎片</span><span class="card-type">普通</span></div>
-    <div class="card-body">战斗开始获得 1 个随机附魔，附着 1 张弓/弩（每场限一次，同一卡不重复）。</div>
-  </div>
-  <div class="card relic">
-    <div class="card-head"><span class="card-name">力量</span><span class="card-type">稀有</span></div>
-    <div class="card-body">你的箭伤害 +1（与弓的“力量”附魔叠加）。</div>
-  </div>
-  <div class="card relic">
-    <div class="card-head"><span class="card-name">无限</span><span class="card-type">稀有</span></div>
-    <div class="card-body">每场战斗前 3 次发射不消耗箭（仍触发箭种与附魔效果）。</div>
-  </div>
-  <div class="card relic">
-    <div class="card-head"><span class="card-name">快速装填器</span><span class="card-type">稀有</span></div>
-    <div class="card-body">战斗开始置入 1 张随机弩的派生牌（0 费，保留）。</div>
-  </div>
-  <div class="card relic">
-    <div class="card-head"><span class="card-name">满弦箭袋</span><span class="card-type">稀有</span></div>
-    <div class="card-body">战斗开始，箭袋每有 5 支箭，获得 1 层满弦（上限 4）。</div>
-  </div>
-  <div class="card relic">
-    <div class="card-head"><span class="card-name">装填手</span><span class="card-type">稀有</span></div>
-    <div class="card-body">“装填…的弩”费用为 0，且打出后抽 1 张牌（每回合限一次）。</div>
-  </div>
-  <div class="card relic">
-    <div class="card-head"><span class="card-name">箭袋回收</span><span class="card-type">稀有</span></div>
-    <div class="card-body">每当你从消耗堆取回箭，额外取回 1 支同箭种。</div>
-  </div>
-  <div class="card relic">
-    <div class="card-head"><span class="card-name">箭术大师的箭袋</span><span class="card-type">商店</span></div>
-    <div class="card-body">每回合额外 +1 支箭；战斗开始 +1 随机特殊箭；每回合第一支箭箭种效果触发两次。</div>
-  </div>
+    <!-- ========== 6 ========== -->
+    <h2 id="s6"><span class="num">6</span>弓专属卡牌（14 张）</h2>
 
-  <div class="card boss">
-    <div class="card-head"><span class="card-name">首射之弓</span><span class="card-type">Boss</span></div>
-    <div class="card-body">你的弓牌伤害 +1。每回合你打出的第一张弓牌，其发射的第一支箭：伤害额外 +3；不消耗箭袋库存（发射复制箭，原箭留袋，复制箭进消耗堆）；若该箭为特殊箭，抽 1 张牌。</div>
-  </div>
-  <div class="card boss">
-    <div class="card-head"><span class="card-name">弩炮台</span><span class="card-type">Boss</span></div>
-    <div class="card-body">每场战斗首次装填不消耗箭且派生牌费用 0；每打出“装填…的弩”，箭袋 +1 随机特殊箭。</div>
-  </div>
-  <div class="card boss">
-    <div class="card-head"><span class="card-name">无尽箭匣</span><span class="card-type">Boss</span></div>
-    <div class="card-body">战斗开始若箭袋 ≥ 20，获得 2 力量与 2 敏捷；否则箭袋 +3 随机箭。每场战斗结束，将消耗堆所有箭取回箭袋。</div>
-  </div>
-  <div class="card boss">
-    <div class="card-head"><span class="card-name">附魔台</span><span class="card-type">Boss</span></div>
-    <div class="card-body">每当你获得附魔，额外获得 1 个随机附魔（可同卡或不同卡）。你的弓/弩可拥有 2 个附魔槽位。</div>
-  </div>
+    <div class="card bow">
+      <div class="card-head"><span class="card-cost">1</span><span class="card-name">弓</span><span class="card-type">攻击</span><span class="rar common">普通</span></div>
+      <div class="card-body">发射 1 支箭。</div>
+      <div class="card-up"><strong>升级：</strong>该箭伤害 +2。</div>
+    </div>
+    <div class="card bow">
+      <div class="card-head"><span class="card-cost c0">0</span><span class="card-name">速射</span><span class="card-type">攻击</span><span class="rar common">普通</span></div>
+      <div class="card-body">发射 1 支箭，该箭伤害 -2。</div>
+      <div class="card-up"><strong>升级：</strong>该箭伤害 -1。</div>
+    </div>
+    <div class="card bow">
+      <div class="card-head"><span class="card-cost">1</span><span class="card-name">连珠箭</span><span class="card-type">攻击</span><span class="rar common">普通</span></div>
+      <div class="card-body">发射 1 支箭；本回合每已发射 1 支箭（含此箭），此箭伤害 +1。</div>
+      <div class="card-up"><strong>升级：</strong>每支 +2。</div>
+    </div>
+    <div class="card bow">
+      <div class="card-head"><span class="card-cost">1</span><span class="card-name">后撤射击</span><span class="card-type">攻击</span><span class="rar common">普通</span></div>
+      <div class="card-body">获得 5 格挡；发射 1 支箭，该箭伤害 -1。</div>
+      <div class="card-up"><strong>升级：</strong>8 格挡，伤害不减。</div>
+    </div>
+    <div class="card bow">
+      <div class="card-head"><span class="card-cost">1</span><span class="card-name">散射</span><span class="card-type">攻击</span><span class="rar common">普通</span></div>
+      <div class="card-body">发射 1 支箭，对所有敌人结算，该箭伤害 -3。</div>
+      <div class="card-up"><strong>升级：</strong>该箭伤害 -1。</div>
+    </div>
+    <div class="card bow">
+      <div class="card-head"><span class="card-cost c0">0</span><span class="card-name">翻箭袋</span><span class="card-type">技能</span><span class="rar common">普通</span></div>
+      <div class="card-body">查看箭袋，将 1 支特殊箭放到袋顶。抽 1 张牌。</div>
+      <div class="card-up"><strong>升级：</strong>可将 2 支特殊箭按序放到袋顶。</div>
+    </div>
+    <div class="card bow">
+      <div class="card-head"><span class="card-cost">2</span><span class="card-name">拉满弓</span><span class="card-type">攻击</span><span class="rar uncommon">罕见</span></div>
+      <div class="card-body">若本回合尚未发射箭：发射 2 支箭，每支伤害 +3；否则发射 1 支箭，伤害 +2。</div>
+      <div class="card-up"><strong>升级：</strong>2 支 +4；1 支 +3。</div>
+    </div>
+    <div class="card bow">
+      <div class="card-head"><span class="card-cost">2</span><span class="card-name">箭雨</span><span class="card-type">攻击</span><span class="rar uncommon">罕见</span></div>
+      <div class="card-body">发射 2 支箭，每支对所有敌人结算。</div>
+      <div class="card-up"><strong>升级：</strong>发射 3 支。</div>
+    </div>
+    <div class="card bow">
+      <div class="card-head"><span class="card-cost">2</span><span class="card-name">满弓待发</span><span class="card-type">攻击</span><span class="rar uncommon">罕见</span></div>
+      <div class="card-body">若本回合尚未发射箭：发射 3 支箭，每支伤害 +2；否则获得 2 层满弦。</div>
+      <div class="card-up"><strong>升级：</strong>3 支 +3；或 3 层满弦。</div>
+    </div>
+    <div class="card bow">
+      <div class="card-head"><span class="card-cost">1</span><span class="card-name">弦上箭</span><span class="card-type">能力</span><span class="rar uncommon">罕见</span></div>
+      <div class="card-body">每回合你发射的第一支箭伤害 +2。</div>
+      <div class="card-up"><strong>升级：</strong>+3。</div>
+    </div>
+    <div class="card bow">
+      <div class="card-head"><span class="card-cost">2</span><span class="card-name">箭袋充盈</span><span class="card-type">攻击</span><span class="rar uncommon">罕见</span></div>
+      <div class="card-body">发射 1 支箭；箭袋每有 5 支箭，此箭伤害 +2。</div>
+      <div class="card-up"><strong>升级：</strong>每 4 支 +2。</div>
+    </div>
+    <div class="card bow">
+      <div class="card-head"><span class="card-cost">2</span><span class="card-name">齐射</span><span class="card-type">攻击</span><span class="rar rare">稀有</span></div>
+      <div class="card-body">发射至多 3 支箭，每支对随机敌人结算。<span class="kw consume">消耗</span></div>
+      <div class="card-up"><strong>升级：</strong>至多 5 支。</div>
+    </div>
+    <div class="card bow">
+      <div class="card-head"><span class="card-cost">2</span><span class="card-name">满弦</span><span class="card-type">能力</span><span class="rar rare">稀有</span></div>
+      <div class="card-body">每发射 1 支箭获得 1 层满弦（每层箭伤害 +1，上限 8，跨回合保留）。</div>
+      <div class="card-up"><strong>升级：</strong>费用 1。</div>
+    </div>
+    <div class="card bow">
+      <div class="card-head"><span class="card-cost">3</span><span class="card-name">精准射击</span><span class="card-type">攻击</span><span class="rar rare">稀有</span></div>
+      <div class="card-body">发射 1 支箭，该箭伤害 ×2。<span class="kw consume">消耗</span></div>
+      <div class="card-up"><strong>升级：</strong>伤害 ×3。</div>
+    </div>
 
-  <h2 id="s10">10. 平衡与实现要点</h2>
+    <!-- ========== 7 ========== -->
+    <h2 id="s7"><span class="num">7</span>弩专属卡牌（11 张 + 派生）</h2>
 
-  <h3 id="s10-1">10.1 空袋禁射的压力</h3>
-  <p>弹药供给是硬需求。初始遗物每回合 +1 只够 1 费弓；补弹网络 = 补充箭矢、制箭、回收箭、重制箭矢、拾荒者、箭袋回收。<code>齐射</code>与<code>连发弩</code>是消耗大户，打出前确认袋深。</p>
+    <div class="card cross">
+      <div class="card-head"><span class="card-cost">1</span><span class="card-name">弩</span><span class="card-type">攻击</span><span class="rar common">普通</span></div>
+      <div class="card-body"><span class="kw">装填</span>取箭 1，置入派生牌（0 费，保留）。</div>
+      <div class="card-up"><strong>升级：</strong>派生牌伤害 +6（+4 变 +10）。</div>
+    </div>
+    <div class="card cross">
+      <div class="card-head"><span class="card-cost c0">0</span><span class="card-name">快装</span><span class="card-type">攻击</span><span class="rar common">普通</span></div>
+      <div class="card-body"><span class="kw">装填</span>取箭 1，置入派生牌（1 费，保留）。</div>
+      <div class="card-up"><strong>升级：</strong>派生牌费用 0。</div>
+    </div>
+    <div class="card cross">
+      <div class="card-head"><span class="card-cost">2</span><span class="card-name">击发</span><span class="card-type">攻击</span><span class="rar common">普通</span></div>
+      <div class="card-body">从袋顶取箭并<strong>立即发射</strong>，该箭伤害 +3。不生成派生牌。</div>
+      <div class="card-up"><strong>升级：</strong>+5。</div>
+    </div>
+    <div class="card cross">
+      <div class="card-head"><span class="card-cost">1</span><span class="card-name">架弩</span><span class="card-type">技能</span><span class="rar common">普通</span></div>
+      <div class="card-body">获得 6 格挡。本回合下一张弩装填不消耗箭。</div>
+      <div class="card-up"><strong>升级：</strong>9 格挡。</div>
+    </div>
+    <div class="card cross">
+      <div class="card-head"><span class="card-cost">1</span><span class="card-name">瞄准</span><span class="card-type">技能</span><span class="rar common">普通</span></div>
+      <div class="card-body">本回合下一张弩装填不消耗箭，抽 1 张牌。</div>
+      <div class="card-up"><strong>升级：</strong>抽 2 张。</div>
+    </div>
+    <div class="card cross">
+      <div class="card-head"><span class="card-cost">2</span><span class="card-name">连发弩</span><span class="card-type">攻击</span><span class="rar uncommon">罕见</span></div>
+      <div class="card-body"><span class="kw">装填</span>取箭 2，置入派生牌（0 费，保留）。</div>
+      <div class="card-up"><strong>升级：</strong>派生牌每支伤害 +4。</div>
+    </div>
+    <div class="card cross">
+      <div class="card-head"><span class="card-cost">1</span><span class="card-name">瞄准射击</span><span class="card-type">技能</span><span class="rar uncommon">罕见</span></div>
+      <div class="card-body">本回合下一张“装填…的弩”发射的箭，箭种效果触发两次。</div>
+      <div class="card-up"><strong>升级：</strong>费用 0。</div>
+    </div>
+    <div class="card cross">
+      <div class="card-head"><span class="card-cost c0">0</span><span class="card-name">上弦</span><span class="card-type">技能</span><span class="rar uncommon">罕见</span></div>
+      <div class="card-body">本回合下一张装填弩装填数 +1。抽 1 张牌。</div>
+      <div class="card-up"><strong>升级：</strong>装填数 +2。</div>
+    </div>
+    <div class="card cross">
+      <div class="card-head"><span class="card-cost">3</span><span class="card-name">三连弩</span><span class="card-type">攻击</span><span class="rar uncommon">罕见</span></div>
+      <div class="card-body"><span class="kw">装填</span>取箭 3，置入派生牌“装填3支[箭种]的三连弩”（0 费，保留）。</div>
+      <div class="card-up"><strong>升级：</strong>派生牌每支伤害 +3。</div>
+    </div>
+    <div class="card cross">
+      <div class="card-head"><span class="card-cost">1</span><span class="card-name">囤箭待发</span><span class="card-type">技能</span><span class="rar rare">稀有</span></div>
+      <div class="card-body">手牌中所有“装填…的弩”费用变为 0（本场战斗）。抽 1 张牌。</div>
+      <div class="card-up"><strong>升级：</strong>费用 0。</div>
+    </div>
+    <div class="card cross">
+      <div class="card-head"><span class="card-cost">3</span><span class="card-name">满装齐射</span><span class="card-type">攻击</span><span class="rar rare">稀有</span></div>
+      <div class="card-body"><span class="kw">装填</span>取箭 2，置入派生牌“装填[箭种]的满装齐射”（0 费，保留）。该派生牌发射时对所有敌人结算。</div>
+      <div class="card-up"><strong>升级：</strong>装填 3 支。</div>
+    </div>
 
-  <h3 id="s10-2">10.2 累乘锚点</h3>
-  <p>易伤 ×1.5 + 3 层发光 ×1.953125 = ×2.93。光灵箭是唯一稳定发光来源，每支 1 层、持续 2 回合。过强时优先削减发光持续时间或光灵箭供给，不改回加算。</p>
+    <h3>7.1 派生牌</h3>
+    <div class="tbl-wrap">
+      <table>
+        <thead><tr><th>派生牌</th><th>费用</th><th>效果</th></tr></thead>
+        <tbody>
+          <tr><td>装填[箭种]的弩</td><td>0</td><td>发射所装填的箭，伤害 +4；装填时箭袋 ≥ 10 改为 +10。</td></tr>
+          <tr><td>装填[箭种]的快装弩</td><td>1（升级后 0）</td><td>发射所装填的箭，伤害 +3。</td></tr>
+          <tr><td>装填[箭种]的连发弩</td><td>0</td><td>发射所装填的 2 支箭，每支伤害 +2。</td></tr>
+          <tr><td>装填3支[箭种]的三连弩</td><td>0</td><td>发射所装填的 3 支箭，每支伤害 +1。</td></tr>
+          <tr><td>装填[箭种]的满装齐射</td><td>0</td><td>发射所装填的箭，对所有敌人结算，伤害 +2。</td></tr>
+        </tbody>
+      </table>
+    </div>
 
-  <h3 id="s10-3">10.3 迟缓的 Boss 价值</h3>
-  <p>1 层 = 少打一次；<code>瞄准射击</code>+迟缓之箭 = 2 层 = 跳过两次。迟缓之箭供给应比伤害之箭更稀缺。</p>
+    <h3>7.2 派生牌命名规则</h3>
+    <p>派生牌卡名 = <strong>「装填」+ 所装填箭种名 + 「的」+ 弩名</strong>。</p>
+    <div class="tbl-wrap">
+      <table>
+        <thead><tr><th>装填情况</th><th>派生牌卡名</th></tr></thead>
+        <tbody>
+          <tr><td>弩 装填 箭</td><td>装填箭的弩</td></tr>
+          <tr><td>弩 装填 伤害之箭</td><td>装填伤害之箭的弩</td></tr>
+          <tr><td>弩 装填 光灵箭</td><td>装填光灵箭的弩</td></tr>
+          <tr><td>连发弩 装填 2 支同种</td><td>装填2支[箭种]的连发弩</td></tr>
+          <tr><td>连发弩 装填 2 支异种</td><td>装填[箭1]与[箭2]的连发弩</td></tr>
+        </tbody>
+      </table>
+    </div>
 
-  <h3 id="s10-4">10.4 再生全局统一</h3>
-  <p>固定量 × 固定回合、不递减，独立 buff ID（如 <code>SteveRegen</code>），与原版再生分开结算。</p>
+    <!-- ========== 8 ========== -->
+    <h2 id="s8"><span class="num">8</span>起始牌组</h2>
 
-  <h3 id="s10-5">10.5 穿透相邻判定</h3>
-  <p>取目标左右各一名存活敌人，各结算等量伤害（含箭种、附魔、乘算）。相邻单位也触发箭种效果——穿透光灵箭可一次给 3 目标挂发光。</p>
+    <h3>8.1 弓流派（10 张）</h3>
+    <div class="tbl-wrap">
+      <table>
+        <thead><tr><th>数量</th><th>卡牌</th><th>池</th></tr></thead>
+        <tbody>
+          <tr><td>4</td><td>弓</td><td>弓专属</td></tr>
+          <tr><td>4</td><td>盾牌</td><td>通用</td></tr>
+          <tr><td>1</td><td>拉弦</td><td>通用</td></tr>
+          <tr><td>1</td><td>补充箭矢</td><td>通用</td></tr>
+        </tbody>
+      </table>
+    </div>
+    <div class="card relic">
+      <div class="card-head"><span class="card-name">弓手的箭袋</span><span class="rar boss">初始遗物</span></div>
+      <div class="card-body">战斗开始时，箭袋获得 3 支箭；每回合开始时，箭袋获得 1 支箭。<br><strong>每场战斗开始时，获得 3 层满弦。</strong></div>
+    </div>
+    <p>开局 3 层满弦 = 所有箭伤害 +3，第一回合普通箭 <strong>6+3=9 伤</strong>。配合「拉弦」下一箭 +2，首回合单箭可达 11 伤。</p>
 
-  <h3 id="s10-6">10.6 首射之弓边界</h3>
-  <ul>
-    <li>袋空仍不可打出。</li>
-    <li><code>齐射</code>射 3 支，仅第 1 支免消耗并 +4（+3+1），其余正常取箭、只吃 +1。</li>
-    <li>复制箭进消耗堆，可被回收。</li>
-    <li>与「无限」叠加仍只免 1 支。</li>
-    <li>弩线零收益。</li>
-  </ul>
+    <h3>8.2 弩流派（10 张）</h3>
+    <div class="tbl-wrap">
+      <table>
+        <thead><tr><th>数量</th><th>卡牌</th><th>池</th></tr></thead>
+        <tbody>
+          <tr><td>4</td><td>弩</td><td>弩专属</td></tr>
+          <tr><td>4</td><td>盾牌</td><td>通用</td></tr>
+          <tr><td>1</td><td>拉弦</td><td>通用</td></tr>
+          <tr><td>1</td><td>补充箭矢</td><td>通用</td></tr>
+        </tbody>
+      </table>
+    </div>
+    <div class="card relic">
+      <div class="card-head"><span class="card-name">弩手的箭袋</span><span class="rar boss">初始遗物</span></div>
+      <div class="card-body">战斗开始时，箭袋获得 3 支箭；每回合开始时，箭袋获得 1 支箭。<br><strong>每场战斗你第一次装填不消耗箭。</strong></div>
+    </div>
+    <p>首次装填免费 = 第一张弩白送一张 0 费保留派生牌。第一回合装填 2 张弩，第二回合 0 费倾泻 <strong>20 伤</strong>。</p>
 
-  <h3 id="s10-7">10.7 实现要点</h3>
-  <ul>
-    <li>箭数据：<code>ArrowData { type, uid }</code>；箭袋存 RunState，消耗堆箭单独列表。</li>
-    <li>派生牌：<code>CardRarity.Special</code>，带 <code>Retain</code> 与 <code>cost=0</code>，卡名与 DynamicVars 装填时写入。</li>
-    <li>附魔：卡牌字段 <code>EnchantmentType</code>（或 List 支持双槽）。</li>
-    <li><code>canUse</code> 统一检查箭袋箭数。</li>
-    <li>HUD 订阅箭袋与消耗堆变更实时刷新。</li>
-    <li>迟缓：敌人挂 <code>DelayPower</code>，回合开始层数 &gt; 0 则跳过意图、层数 -1。</li>
-    <li>跨战斗写回：<code>OnCombatEnd</code> 一次性写回。</li>
-  </ul>
+    <div class="note">
+      <strong>两线起始牌组只有攻击牌不同</strong>（弓 vs 弩），其余 6 张完全相同。「拉弦」在弓局选“下一箭 +2”，在弩局选手上有派生牌时的“获得随机特殊箭”；「补充箭矢」在弓局吃“未发射则补特殊箭”，在弩局吃“打出过弩则多补一支”。
+    </div>
 
-  <h2 id="s11">11. 卡池总览</h2>
-  <table class="tbl">
-    <tr><th>类别</th><th>数量</th></tr>
-    <tr><td>通用</td><td>5</td></tr>
-    <tr><td>弓专属</td><td>8</td></tr>
-    <tr><td>弩专属</td><td>5</td></tr>
-    <tr><td>派生</td><td>动态</td></tr>
-  </table>
+    <!-- ========== 9 ========== -->
+    <h2 id="s9"><span class="num">9</span>配套遗物</h2>
 
-  <div class="summary">
-    <p><strong>一句话总结</strong>：弓只有「发射」——打出即射、即时结算、无派生牌；弩才有「装填」——打出先取箭锁定、生成 0 费保留的“装填[箭种]的弩”、再打出才发射。箭袋无上限、跨战斗继承、免费排序、消耗堆可回收；箭是唯一伤害源，空袋禁射；发光与易伤累乘，迟缓延后敌人意图，再生按 MC 数值不递减；Boss 遗物「首射之弓」强化每回合第一张弓的第一支箭。</p>
-  </div>
+    <h3>9.1 通用遗物</h3>
+    <div class="card relic">
+      <div class="card-head"><span class="card-name">燧石与钢</span><span class="rar common">普通</span></div>
+      <div class="card-body">战斗开始箭袋 +1 支箭。每回合发射的第一支箭伤害 +1。</div>
+    </div>
+    <div class="card relic">
+      <div class="card-head"><span class="card-name">箭袋漏斗</span><span class="rar common">普通</span></div>
+      <div class="card-body">每回合发射 ≥ 3 支箭时，抽 1 张牌。</div>
+    </div>
+    <div class="card relic">
+      <div class="card-head"><span class="card-name">拾荒者</span><span class="rar common">普通</span></div>
+      <div class="card-body">每场战斗结束时，从消耗堆取回 2 支箭放入箭袋（随机箭种）。</div>
+    </div>
+    <div class="card relic">
+      <div class="card-head"><span class="card-name">箭术大师的箭袋</span><span class="rar shop">商店</span></div>
+      <div class="card-body">每回合额外 +1 支箭；战斗开始 +1 随机特殊箭；每回合第一支箭箭种效果触发两次。</div>
+    </div>
+    <div class="card boss">
+      <div class="card-head"><span class="card-name">无尽箭匣</span><span class="rar boss">Boss</span></div>
+      <div class="card-body">战斗开始若箭袋 ≥ 20，获得 2 力量与 2 敏捷；否则箭袋 +3 随机箭。每场战斗结束时，将消耗堆中所有箭取回箭袋。</div>
+    </div>
 
+    <h3>9.2 弓线遗物</h3>
+    <div class="card relic">
+      <div class="card-head"><span class="card-name">箭羽</span><span class="rar common">普通</span></div>
+      <div class="card-body">每回合发射的第一支箭，箭种效果触发两次。</div>
+    </div>
+    <div class="card relic">
+      <div class="card-head"><span class="card-name">附魔台碎片</span><span class="rar common">普通</span></div>
+      <div class="card-body">战斗开始时，获得 1 个随机附魔，选择 1 张弓附着（每场战斗限一次）。</div>
+    </div>
+    <div class="card relic">
+      <div class="card-head"><span class="card-name">力量</span><span class="rar rare">稀有</span></div>
+      <div class="card-body">你的箭伤害 +1（与弓的“力量”附魔叠加）。</div>
+    </div>
+    <div class="card relic">
+      <div class="card-head"><span class="card-name">无限</span><span class="rar rare">稀有</span></div>
+      <div class="card-body">每场战斗前 3 次发射不消耗箭（仍触发箭种与附魔效果）。</div>
+    </div>
+    <div class="card relic">
+      <div class="card-head"><span class="card-name">满弦箭袋</span><span class="rar rare">稀有</span></div>
+      <div class="card-body">战斗开始时，箭袋每有 5 支箭，获得 1 层满弦（上限 4）。</div>
+    </div>
+    <div class="card boss">
+      <div class="card-head"><span class="card-name">首射之弓</span><span class="rar boss">Boss</span></div>
+      <div class="card-body">你的弓牌伤害 +1。每回合你打出的第一张弓牌，其发射的第一支箭：伤害额外 +3；不消耗箭袋库存（发射复制箭，原箭留袋，复制箭进消耗堆）；若该箭为特殊箭，抽 1 张牌。</div>
+    </div>
+    <div class="card boss">
+      <div class="card-head"><span class="card-name">附魔台</span><span class="rar boss">Boss</span></div>
+      <div class="card-body">每当你获得附魔，额外获得 1 个随机附魔。你的弓可拥有 2 个附魔槽位。</div>
+    </div>
+
+    <h3>9.3 弩线遗物</h3>
+    <div class="card relic">
+      <div class="card-head"><span class="card-name">附魔台碎片</span><span class="rar common">普通</span></div>
+      <div class="card-body">战斗开始时，获得 1 个随机附魔，选择 1 张弩附着（每场战斗限一次）。</div>
+    </div>
+    <div class="card relic">
+      <div class="card-head"><span class="card-name">快速装填器</span><span class="rar rare">稀有</span></div>
+      <div class="card-body">战斗开始时，置入 1 张随机弩的派生牌（0 费，保留）。</div>
+    </div>
+    <div class="card relic">
+      <div class="card-head"><span class="card-name">装填手</span><span class="rar rare">稀有</span></div>
+      <div class="card-body">“装填…的弩”费用为 0，且打出后抽 1 张牌（每回合限一次）。</div>
+    </div>
+    <div class="card relic">
+      <div class="card-head"><span class="card-name">力量</span><span class="rar rare">稀有</span></div>
+      <div class="card-body">你的箭伤害 +1。</div>
+    </div>
+    <div class="card relic">
+      <div class="card-head"><span class="card-name">无限</span><span class="rar rare">稀有</span></div>
+      <div class="card-body">每场战斗前 3 次发射不消耗箭（仍触发箭种与附魔效果）。</div>
+    </div>
+    <div class="card boss">
+      <div class="card-head"><span class="card-name">弩炮台</span><span class="rar boss">Boss</span></div>
+      <div class="card-body">每场战斗首次装填不消耗箭且派生牌费用 0；每打出“装填…的弩”，箭袋 +1 随机特殊箭。</div>
+    </div>
+    <div class="card boss">
+      <div class="card-head"><span class="card-name">附魔台</span><span class="rar boss">Boss</span></div>
+      <div class="card-body">每当你获得附魔，额外获得 1 个随机附魔。你的弩可拥有 2 个附魔槽位。</div>
+    </div>
+
+    <!-- ========== 10 ========== -->
+    <h2 id="s10"><span class="num">10</span>平衡与实现要点</h2>
+
+    <h3>10.1 空袋禁射的压力</h3>
+    <p>弓弩都不能空放，弹药供给是硬性需求。起始遗物每回合 +1 支只够 1 费弓的节奏；补弹网络 = 补充箭矢、制箭、拾箭、回收箭、重制箭矢、拾荒者、箭袋回收。<code>齐射</code>（至多 5 支）和 <code>连发弩</code>（2 支）是消耗大户，打出前必须确认袋深。</p>
+
+    <h3>10.2 累乘的数值锚点</h3>
+    <p>易伤 ×1.5 + 3 层发光 ×1.953125 = ×2.93，接近三倍。光灵箭是唯一稳定发光来源，每支只给 1 层、持续 2 回合。若实测过强，优先削减发光持续时间或光灵箭供给量，不改回加算。</p>
+
+    <h3>10.3 迟缓的 Boss 战价值</h3>
+    <p>1 层迟缓 = 敌人少打一次；<code>瞄准射击</code> + 迟缓之箭 = 2 层迟缓 = 跳过 2 次行动。对 Boss 大招是接近“回合跳过”的硬控，因此迟缓之箭的供给应比伤害之箭更稀缺，先古箭袋随机池需单独配平权重。</p>
+
+    <h3>10.4 再生全局统一</h3>
+    <p>再生采用“固定量 × 固定回合、不递减”，独立 buff ID（如 <code>SteveRegen</code>），与原版再生分开结算，所有 Stevemod 流派统一引用。</p>
+
+    <h3>10.5 穿透的相邻判定</h3>
+    <p>以目标为锚点取左右各一名存活敌人，各结算一次等量伤害（含箭种、附魔、发光 / 易伤乘算）。相邻单位也触发箭种效果——穿透光灵箭可一次给 3 个目标挂发光。</p>
+
+    <h3>10.6 首射之弓的边界</h3>
+    <ul>
+      <li><strong>袋空仍不可打出</strong>：免消耗不解决空袋，第一张弓仍需袋非空。</li>
+      <li><strong>多箭牌只保第一支</strong>：<code>齐射</code> 射 3 支，仅第 1 支免消耗并 +4（+3+1），第 2、3 支正常取箭、只吃弓牌 +1。</li>
+      <li><strong>复制箭进消耗堆</strong>：可被 <code>回收箭</code> / <code>重制箭矢</code> 取回。</li>
+      <li><strong>与「无限」遗物叠加</strong>：两者都限次数，最坏情况首射同时触发，仍只免 1 支。</li>
+      <li><strong>弩线零收益</strong>：强化只作用于弓，弩线强度仍由附魔与装填节奏决定。</li>
+    </ul>
+
+    <h3>10.7 实现要点</h3>
+    <ul>
+      <li>箭数据：轻量 <code>ArrowData { type, uid }</code>；箭袋存 RunState，消耗堆的箭单独列表。</li>
+      <li>派生牌：<code>CardRarity.Special</code>，带 <code>Retain</code> 与 <code>cost=0</code>，卡名与 <code>DynamicVars</code> 在装填时按箭种动态写入。</li>
+      <li>附魔：卡牌自定义字段 <code>EnchantmentType</code>（或 <code>List</code> 支持双槽），装填 / 发射时读取并写入派生牌。</li>
+      <li><code>canUse</code> 统一检查箭袋箭数；弓牌袋空置灰，弩牌箭数不足置灰。</li>
+      <li>箭袋 UI 订阅箭袋与消耗堆变更实时刷新 <code>NEXT</code> 与数量徽章；拖拽走 <code>moveArrow(from, to)</code> 接口，免费无限次。</li>
+      <li>意图延后：敌人挂 <code>DelayPower</code>，<code>OnEnemyTurnStart</code> 层数 &gt; 0 则跳过本次意图执行、意图对象保留、层数 -1；迟缓先于意图重 roll 结算。</li>
+      <li>跨战斗写回：<code>OnCombatEnd</code> 一次性写回箭袋，按遗物回收消耗堆箭，销毁未打出的派生牌（其箭进消耗堆）。</li>
+      <li>卡池过滤：弓局注册“通用池 13 + 弓专属 14”，弩局注册“通用池 13 + 弩专属 11”；Boss 遗物池分离。</li>
+    </ul>
+
+    <!-- ========== 11 ========== -->
+    <h2 id="s11"><span class="num">11</span>卡池统计</h2>
+
+    <div class="stat-grid">
+      <div class="stat"><div class="stat-num">13</div><div class="stat-label">通用牌</div></div>
+      <div class="stat"><div class="stat-num">14</div><div class="stat-label">弓专属</div></div>
+      <div class="stat"><div class="stat-num">11</div><div class="stat-label">弩专属</div></div>
+      <div class="stat"><div class="stat-num">5</div><div class="stat-label">动态派生牌</div></div>
+    </div>
+
+    <div class="tbl-wrap">
+      <table>
+        <thead><tr><th>池</th><th>普通</th><th>罕见</th><th>稀有</th><th>合计</th></tr></thead>
+        <tbody>
+          <tr><td>通用</td><td>9</td><td>1</td><td>3</td><td>13</td></tr>
+          <tr><td>弓专属</td><td>6</td><td>5</td><td>3</td><td>14</td></tr>
+          <tr><td>弩专属</td><td>5</td><td>4</td><td>2</td><td>11</td></tr>
+          <tr><td><strong>弓局合计</strong></td><td><strong>15</strong></td><td><strong>6</strong></td><td><strong>6</strong></td><td><strong>27</strong></td></tr>
+          <tr><td><strong>弩局合计</strong></td><td><strong>14</strong></td><td><strong>5</strong></td><td><strong>5</strong></td><td><strong>24</strong></td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <div class="note">
+      <strong>一句话总结：</strong>弓只有「发射」——打出即射、即时结算、无派生牌；弩才有「装填」——打出先取箭锁定、生成 0 费保留的“装填[箭种]的弩”、再打出才发射。箭袋无上限、跨战斗继承、免费排序、消耗堆可回收；箭是唯一伤害源，空袋禁射；发光与易伤累乘，迟缓延后敌人意图，再生按 MC 数值不递减。功能相似的 13 张辅助牌合并为通用池，弓局与弩局各注册“通用池 + 本线专属池”，两线起始牌组只差攻击牌。
+    </div>
+
+  </main>
 </div>
 
 <script>
 (function(){
-  var mask = document.getElementById('mask');
-  var panel = document.getElementById('tocPanel');
-  var tocBtn = document.getElementById('tocBtn');
-  var tocClose = document.getElementById('tocClose');
-  var tocList = document.getElementById('tocList');
-  var backTop = document.getElementById('backTop');
+  // ===== 自动生成目录 =====
+  var headings = Array.prototype.slice.call(document.querySelectorAll('h2[id], h3[id]'));
+  var sideList = document.getElementById('sideList');
+  var drawerList = document.getElementById('drawerList');
+  var sideLinks = [], drawerLinks = [];
 
-  function openToc(){ mask.classList.add('show'); panel.classList.add('show'); }
-  function closeToc(){ mask.classList.remove('show'); panel.classList.remove('show'); }
+  // 只把带 id 的 h2/h3 收进目录；h3 若无 id 则用索引补
+  var h2s = Array.prototype.slice.call(document.querySelectorAll('h2[id]'));
+  h2s.forEach(function(h){
+    var id = h.id;
+    var text = h.querySelector('.num') ? h.textContent.trim() : h.textContent.trim();
 
-  tocBtn.addEventListener('click', openToc);
-  tocClose.addEventListener('click', closeToc);
-  mask.addEventListener('click', closeToc);
+    var a1 = document.createElement('a');
+    a1.href = '#' + id;
+    a1.textContent = text;
+    a1.dataset.target = id;
+    sideList.appendChild(a1);
+    sideLinks.push(a1);
 
-  // 平滑滚动 + 回退
-  function smoothScrollTo(el){
+    var a2 = document.createElement('a');
+    a2.href = '#' + id;
+    a2.textContent = text;
+    a2.dataset.target = id;
+    drawerList.appendChild(a2);
+    drawerLinks.push(a2);
+  });
+
+  // ===== 平滑滚动（带偏移与回退） =====
+  var NAV_OFFSET = 76;
+  function smoothTo(el){
     if(!el) return;
+    var startY = window.pageYOffset || document.documentElement.scrollTop || 0;
+    var targetY = el.getBoundingClientRect().top + startY - NAV_OFFSET;
+    if(targetY < 0) targetY = 0;
+
+    // 优先原生平滑
     try{
-      if(typeof el.scrollIntoView === 'function'){
-        el.scrollIntoView({behavior:'smooth', block:'start'});
-        return;
-      }
+      window.scrollTo({ top: targetY, behavior: 'smooth' });
+      return;
     }catch(e){}
-    // 回退：手动缓动
-    var startY = window.pageYOffset || document.documentElement.scrollTop || document.body.scrollTop || 0;
-    var targetY = el.getBoundingClientRect().top + startY - 66; // 顶部栏高度补偿
-    var start = null, dur = 380;
+
+    // 回退：requestAnimationFrame 缓动
+    var start = null, dur = 420;
     function step(ts){
       if(!start) start = ts;
       var p = Math.min((ts - start) / dur, 1);
@@ -624,45 +998,65 @@
     requestAnimationFrame(step);
   }
 
-  // 目录点击
-  Array.prototype.forEach.call(tocList.querySelectorAll('.toc-item'), function(item){
-    item.addEventListener('click', function(){
-      var id = this.getAttribute('data-target');
-      var target = document.getElementById(id);
-      closeToc();
-      // 稍等浮层关闭动画
-      setTimeout(function(){ smoothScrollTo(target); }, 120);
-    });
-  });
-
-  // 回到顶部 + 当前章节高亮（同时抓取h2、h3）
-  var headings = Array.prototype.slice.call(document.querySelectorAll('h2[id],h3[id]'));
-  var tocItems = Array.prototype.slice.call(tocList.querySelectorAll('.toc-item'));
-
-  function onScroll(){
-    var y = window.pageYOffset || document.documentElement.scrollTop || 0;
-    // 回到顶部按钮
-    if(y > 400){ backTop.classList.add('show'); }
-    else{ backTop.classList.remove('show'); }
-    // 高亮当前章节
-    var current = null;
-    for(var i = 0; i < headings.length; i++){
-      var top = headings[i].getBoundingClientRect().top + y;
-      if(top - 90 <= y) current = headings[i].id;
-      else break;
-    }
-    tocItems.forEach(function(it){
-      it.classList.toggle('active', it.getAttribute('data-target') === current);
+  function bindLinks(links, isDrawer){
+    links.forEach(function(a){
+      a.addEventListener('click', function(ev){
+        ev.preventDefault();
+        var id = a.dataset.target;
+        var el = document.getElementById(id);
+        if(isDrawer) closeDrawer();
+        setTimeout(function(){ smoothTo(el); history.replaceState(null, '', '#' + id); }, isDrawer ? 160 : 0);
+      });
     });
   }
+  bindLinks(sideLinks, false);
+  bindLinks(drawerLinks, true);
 
+  // ===== 滚动高亮 =====
+  var backTop = document.getElementById('backTop');
+  function onScroll(){
+    var y = window.pageYOffset || document.documentElement.scrollTop || 0;
+
+    // 回到顶部
+    if(y > 420) backTop.classList.add('show');
+    else backTop.classList.remove('show');
+
+    // 当前章节
+    var current = null;
+    for(var i = 0; i < h2s.length; i++){
+      var top = h2s[i].getBoundingClientRect().top + y;
+      if(top - NAV_OFFSET - 30 <= y) current = h2s[i].id;
+      else break;
+    }
+    sideLinks.forEach(function(a){ a.classList.toggle('active', a.dataset.target === current); });
+    drawerLinks.forEach(function(a){ a.classList.toggle('active', a.dataset.target === current); });
+  }
   window.addEventListener('scroll', onScroll, {passive:true});
   onScroll();
 
+  // ===== 回到顶部 =====
   backTop.addEventListener('click', function(){
-    try{ window.scrollTo({top:0, behavior:'smooth'}); }
-    catch(e){ window.scrollTo(0,0); }
+    try{ window.scrollTo({ top: 0, behavior: 'smooth' }); }
+    catch(e){ window.scrollTo(0, 0); }
   });
+
+  // ===== 移动端抽屉 =====
+  var mask = document.getElementById('mask');
+  var drawer = document.getElementById('drawer');
+  function openDrawer(){ mask.classList.add('show'); drawer.classList.add('show'); }
+  function closeDrawer(){ mask.classList.remove('show'); drawer.classList.remove('show'); }
+  document.getElementById('openDrawer').addEventListener('click', openDrawer);
+  document.getElementById('closeDrawer').addEventListener('click', closeDrawer);
+  mask.addEventListener('click', closeDrawer);
+
+  // ===== 打印 =====
+  document.getElementById('printBtn').addEventListener('click', function(){ window.print(); });
+
+  // ===== 首次进入若带 hash，滚动到对应位置 =====
+  if(location.hash){
+    var t = document.getElementById(location.hash.slice(1));
+    if(t) setTimeout(function(){ smoothTo(t); }, 120);
+  }
 })();
 </script>
 </body>
